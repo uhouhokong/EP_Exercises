@@ -1,0 +1,2083 @@
+buffer 1009
+
+color 0,0,0:boxf
+font "ＭＳ ゴシック",20,1
+pos 20,10
+color 255,255,255
+print "\n\n\nクレジット\n\n\nお借りしたBGM\n"
+print "Screw Head (まんぼう二等兵)"
+print "Buck me up (まんぼう二等兵)"
+print "『まんぼう特攻隊』\nhttp://www.manbou2ndclass.net/p/bgm_28.html\n\n"
+
+print "お借りした効果音\n\n多数"
+print "『ザ・マッチメイカァズ』\nhttp://osabisi.sakura.ne.jp/m2/"
+
+print "\n\n				presented by @UHOUHOKONG"
+
+celload "..\\imoge\\8239.bmp",1010,0
+gmode 0,100,100
+pos 640-100-40,480-100-80
+celput 1010,0
+
+heya2x=1300-640
+screen_width =640;680;640
+screen_height=480;510;480
+stage_width=heya2x
+stage_l_lim=0
+stage_height=1080
+
+SE_flag=1
+buffer 647,1000,240
+color 0,0,0:boxf
+
+difficult=0
+#include "hspmath.as"
+
+clock_flag=1
+debug_mode_draw=0
+*init
+screen 0
+#include "loadsounds.hsp"
+	mci "stop start"
+	mci "stop loop"
+if difficult==0{
+	#include "title.hsp"
+}
+
+;エフェクト描画スペースはbuffer 100以降の領域です
+buffer 3
+picload "..\\imoge\\playercmp.bmp";img
+buffer 1
+picload "..\\imoge\\playercmpmirror.bmp";img
+#include "back_ground1.hsp";背景画像をバッファ10～に描画する
+
+screen 0, screen_width,screen_height
+#include "Gimmick_cal.hsp"
+
+//各種パラメータ
+coma=6
+roll=0
+rotate=0.0
+
+slider_exist=0
+
+barwidth = 3 //音バー長さ
+sliderlength = 90 + barwidth//スライダーの長さ
+sliderwidth = 10//スライダー幅
+sliderx= 12//スライダー外枠のx座標
+slidery= 15//スライダー外枠のy座標
+slideroutwidth = 2//スライダー外枠の幅
+safezonewidth = 12//セーフゾーンの幅
+slx = sliderx+slideroutwidth//スライダー内部のx（（甘えた変数））
+sly = slidery+slideroutwidth//スライダー内部のy
+
+count = 190
+if difficult==1:count=90:bpm_change=1
+c_delay =-10
+t = tloop/2-5
+tickflag=0;もしやいらないのでは
+metronome=7
+introflag=0
+OnCombo =0
+
+mci "status start length"
+start_length = stat//イントロが流れる時間の長さ
+mci "status loop length"
+loop_length = stat//ループが流れる時間の長さ
+bpm=70
+if difficult==1:bpm=140
+
+tloop = loop_length/(double(bpm)/240184*loop_length)
+;(double(bpm)/240184*loop_length)が小節数を求める式。
+;ちなみにBuck up me! は40小節でループします
+
+;以下アクション
+
+stage_width=heya2x
+
+scrollx=0
+scrolly=0
+prescrolly=10000
+scrolly_limit=5
+pwid=50;キャラクターの横幅
+phig=90;キャラクターの縦幅
+px=140.0;キャラクターのx座標初期値
+pvx=4.0;キャラクターのx方向の移動スピード
+py=200.0;キャラクターのy座標初期値
+pvy=0.0;キャラクターのy方向の速さ初期値
+
+
+Operatable=1
+
+
+scrolllimy=2.0;１フレームに移動できるスクリーンの量
+
+prepx=px
+prepy=py
+presx=scrollx
+presy=scrolly
+
+;ﾋﾟﾚｰﾔの状態、アニメーション
+pdirect=1;キャラクターの向き（1か-1で記述し、なんかするのにつかう）
+OnRhythm=0;
+combo_finish=0;フィニッシュ技を出している間はスペーシキー入力をなしに
+pstate=0
+stateMAX=40;pstateの最大値。よぶん
+count_routine=-1
+nockback_vx2=5.0
+nockback_resist=0.12
+nockback_roll=0
+nockback_limit=50
+
+;アニメパターンの初期化-----------------------------------------------------------------------
+dim anime_koma,40/*ループに際して、使用するコマの数をいう。　現コマ<anime_koma(現状態)だといいね*/
+dim anime_pattern,40/*アニメーションで表示する際だけの画像のローテーションを組むときの組み方のパターン。
+アクションにより異なりけりだが、
+呼び出すときはanime_pattern(10+pstate)と記述する。尚、アニメーションのパターンを以下に記す
+0・・・ずっとループ
+1・・・コマ速で一度再生したら、最後のコマを表示して停止する
+11・・・コマ速で一度再生したら、最後のコマを表示して停止する。前方に一枚追加。
+21・・・コマ速で一度再生したら、最後のコマを表示して停止する。後方に一枚追加。
+
+ちなみに、図形回転を用いる際は画像一枚だしなんの参照もしないし適当な値ぶっこんでいい
+アニメーションのパターンは以下で宣言する。
+*/
+dim psound_id,40;プレイやのサウンドのid
+;i=-6		 :anime_pattern.(10+i)=-1		:anime_koma(10+i)=1
+i=-5		 :anime_pattern.(10+i)=0		:anime_koma(10+i)=1
+i=-4		 :anime_pattern.(10+i)=0		:anime_koma(10+i)=4
+i=-3		 :anime_pattern.(10+i)=1		:anime_koma(10+i)=5
+i=-2		 :anime_pattern.(10+i)=-1		:anime_koma(10+i)=1
+i=-1		 :anime_pattern.(10+i)=0		:anime_koma(10+i)=1;まだ
+i=0			 :anime_pattern.(10+i)=0		:anime_koma(10+i)=4
+i=1			 :anime_pattern.(10+i)=1		:anime_koma(10+i)=5
+i=2			 :anime_pattern.(10+i)=11		:anime_koma(10+i)=5
+i=3			 :anime_pattern.(10+i)=1		:anime_koma(10+i)=3
+i=4			 :anime_pattern.(10+i)=1		:anime_koma(10+i)=5
+i=5			 :anime_pattern.(10+i)=11		:anime_koma(10+i)=4
+i=6			 :anime_pattern.(10+i)=1		:anime_koma(10+i)=2
+i=7			 :anime_pattern.(10+i)=0		:anime_koma(10+i)=1;まだ
+i=8			 :anime_pattern.(10+i)=1		:anime_koma(10+i)=3
+i=9			 :anime_pattern.(10+i)=11		:anime_koma(10+i)=3
+i=10		 :anime_pattern.(10+i)=12		:anime_koma(10+i)=4
+i=11		 :anime_pattern.(10+i)=11		:anime_koma(10+i)=3
+i=12		 :anime_pattern.(10+i)=-1		:anime_koma(10+i)=1
+i=13		 :anime_pattern.(10+i)=-1		:anime_koma(10+i)=1
+i=14		 :anime_pattern.(10+i)=0		:anime_koma(10+i)=2;まだ
+i=15		 :anime_pattern.(10+i)=11		:anime_koma(10+i)=3;まだ
+i=16		 :anime_pattern.(10+i)=1		:anime_koma(10+i)=2
+i=17		 :anime_pattern.(10+i)=1		:anime_koma(10+i)=2
+i=18		 :anime_pattern.(10+i)=-1		:anime_koma(10+i)=1
+
+;判定追加/挙動情報の初期化-----------------------------------------------------------------------
+dim transfer_p,2,40/*縦横の移動を伴う挙動のパターンを以下のように初期化する。
+transfer_p(0,n)	=0・・・横移動不可　transfer_p.0にはx方向の挙動を記述。
+				=1・・・横移動可　ちなみに、技だし→ズザーってちょっと横滑りする挙動も入れよう
+						としてるけど連続攻撃とか考慮した結果あれに
+						配列の要素増やしてもよかったかもしんないけど、なんかいいや
+				=2・・・横移動不可だが、方向転換のみ可（なんか）
+				=3・・・移動距離半減（つかわないのでは）
+					強制移動と方向キー入力受付は別処理で！
+transfer_p(1,n)	=0・・・移動せず
+						状態に切り替わった瞬間に一度だけ行う処理。切り替え直後に
+						それぞれの挙動を記述するのが望ましい
+				=1・・・じょんぽ（加減速移動・・・pvyに上方向を代入する）
+				=2・・・じょんぽ（空中で停止）
+				=3・・・急激落下（カメラ（screeny）もできたらいじっといたほうがよい）
+*/
+dim judge_p,40/*判定を追加する際のパターンを以下に記述していく。
+judge_p(n)	=0・・・判定追加なし
+			=1・・・前方にx=pwid,y=phig/2(←py+phig/4の位置に)の大きさの判定を設置。
+					尚、判定はキャラクタについてまわる
+			=2・・・後方にx=pwid,y=phig/2(←py+phig/4の位置に)の大きさの判定を設置。
+					尚、判定はキャラクタについてまわる
+			=3・・・上方にx=pwid,y=phig/2(←py-phig/4の位置に)の大きさの判定を設置。
+					尚、判定はキャラクタについてまわる
+			=4・・・下方にx=pwid*2,y=phig/2(←px-pwid/2,py+phig/2の位置に)の大きさの判定を設置。
+					判定は地面についてからのものとし、なんかグワーって感じ
+			=5・・・前方に。射出すると飛んでいく
+
+ちなみに、図形回転を用いる際は画像一枚だしなんの参照もしないし適当な値ぶっこんでいい
+アニメーションのパターンは以下で宣言する。
+*/
+dim damage_p,40/*攻撃ごとのダメージ量（整数値）
+damage_p.n	=判定追加なしは0
+*/
+dim hantei_lim,40
+	
+	
+i=-5		:transfer_p.0.(10+i)=0	:transfer_p.1.(10+i)=0	:judge_p.(10+i)=0	:damage_p.(10+i)=0
+i=-4		:transfer_p.0.(10+i)=1	:transfer_p.1.(10+i)=0	:judge_p.(10+i)=0	:damage_p.(10+i)=0
+i=-3		:transfer_p.0.(10+i)=1	:transfer_p.1.(10+i)=1	:judge_p.(10+i)=0	:damage_p.(10+i)=0
+i=-2		:transfer_p.0.(10+i)=1	:transfer_p.1.(10+i)=1	:judge_p.(10+i)=0	:damage_p.(10+i)=0
+i=-1		:transfer_p.0.(10+i)=0	:transfer_p.1.(10+i)=0	:judge_p.(10+i)=0;	:damage_p.(10+i)=0
+i=0			:transfer_p.0.(10+i)=1	:transfer_p.1.(10+i)=0	:judge_p.(10+i)=0	:damage_p.(10+i)=0
+i=1			:transfer_p.0.(10+i)=1	:transfer_p.1.(10+i)=1	:judge_p.(10+i)=0	:damage_p.(10+i)=0
+i=2			:transfer_p.0.(10+i)=0	:transfer_p.1.(10+i)=0	:judge_p.(10+i)=1	:damage_p.(10+i)=4
+i=3			:transfer_p.0.(10+i)=0	:transfer_p.1.(10+i)=0	:judge_p.(10+i)=0	:damage_p.(10+i)=0
+i=4			:transfer_p.0.(10+i)=0	:transfer_p.1.(10+i)=0	:judge_p.(10+i)=0	:damage_p.(10+i)=0
+i=5			:transfer_p.0.(10+i)=0	:transfer_p.1.(10+i)=0	:judge_p.(10+i)=1	:damage_p.(10+i)=10	;:hantei_lim(10+i)=50
+i=6			:transfer_p.0.(10+i)=0	:transfer_p.1.(10+i)=0	:judge_p.(10+i)=0	:damage_p.(10+i)=0
+i=7			:transfer_p.0.(10+i)=0	:transfer_p.1.(10+i)=0	:judge_p.(10+i)=0;	:damage_p.(10+i)=0
+i=8			:transfer_p.0.(10+i)=1	:transfer_p.1.(10+i)=1	:judge_p.(10+i)=3	:damage_p.(10+i)=4
+i=9			:transfer_p.0.(10+i)=0	:transfer_p.1.(10+i)=0	:judge_p.(10+i)=1	:damage_p.(10+i)=1
+i=10		:transfer_p.0.(10+i)=0	:transfer_p.1.(10+i)=0	:judge_p.(10+i)=2	:damage_p.(10+i)=4
+i=11		:transfer_p.0.(10+i)=0	:transfer_p.1.(10+i)=0	:judge_p.(10+i)=1	:damage_p.(10+i)=1
+i=12		:transfer_p.0.(10+i)=1	:transfer_p.1.(10+i)=1	:judge_p.(10+i)=0	:damage_p.(10+i)=0
+i=13		:transfer_p.0.(10+i)=1	:transfer_p.1.(10+i)=1	:judge_p.(10+i)=0	:damage_p.(10+i)=0
+i=14		:transfer_p.0.(10+i)=0	:transfer_p.1.(10+i)=0	:judge_p.(10+i)=4;	:damage_p.(10+i)=0
+i=15		:transfer_p.0.(10+i)=0	:transfer_p.1.(10+i)=1	:judge_p.(10+i)=1	:damage_p.(10+i)=8	;:hantei_lim(10+i)=40
+i=16		:transfer_p.0.(10+i)=1	:transfer_p.1.(10+i)=1	:judge_p.(10+i)=0	:damage_p.(10+i)=0
+i=17		:transfer_p.0.(10+i)=0	:transfer_p.1.(10+i)=3	:judge_p.(10+i)=4	:damage_p.(10+i)=8
+i=18		:transfer_p.0.(10+i)=1	:transfer_p.1.(10+i)=1	:judge_p.(10+i)=0	:damage_p.(10+i)=0
+
+p_movx_flag=1	;横移動が可能であるかどうかを記録する。pstateの状態によって分岐される。（あれ参照）
+				;最終的に１変数（配列？）でまとめられる気がする
+ppy=-10000	;状態19・・・ジャンプの開始点を記録しておき、そこからのジャンプにする
+
+play_good=0;play_good
+play_good_max=8;play_good_max
+good_rolls=0;good_rolls
+good_limit=50;good_limit
+dim good,play_good_max,4;good.playmax = y/n,good_limit,good_x,good_y
+
+gravity=0.210;重力加速度
+jump_max=40;ジャンプの飛距離
+jump_v=-6.8
+jump_tlen=tloop*15/64;ジャンプに要する時間（ミリ秒）
+jump_troll=0;ここにジャンプから経過したtを代入
+jump_tmark=0;ここにジャンプ時のtを代入
+jump_high=40.0;ジョンポの最大値
+jump_v2=-jump_high/jump_tlen
+jump_grav=2.0*jump_high
+
+if difficult==1{
+gravity=0.62;重力加速度
+jump_max=40;ジャンプの飛距離
+jump_v=-11.0
+}
+
+v_max=10.0;落下速度の上限
+gravity_2=0.7
+grav=0.2
+OnGround=1//***boolean***接地していれば1、そうでなければ0
+close=1//????????????????????????????????????????????????
+space_switch=0//スペースキーが押下されている間のみ1（押しっぱなし対策）
+
+//****************************************個別エフェクト*************************************
+letterbox_exist=0
+letterbox_d=0.0
+letterbox_limit=40
+letterbox_ratio=10
+
+;lookat_x
+;lookat_y
+lookat_exist=0;注目点が存在するか否か
+lookat_ratio=4
+lookat_vlimit=20.0
+
+manma=0;最後のクレジット
+
+//****************************************個別エフェクト*************************************
+	
+eff_various=30;えっふぇくとの最大数
+;eff_typeなどの配列に表示方法の場合分けをする必要に迫られそうだがまあおいおいということで
+eff_wid_max=200;多数に及ぶエフェクトのなかでも、その最大の幅ピクセル
+dim eff_wid,eff_various
+dim eff_hig,eff_various
+dim eff_lim,eff_various;（消滅カウント）
+
+i=0		:eff_wid.i=50		:eff_hig.i=50		:eff_lim.i=40
+i=1		:eff_wid.i=120		:eff_hig.i=120		:eff_lim.i=70
+i=2		:eff_wid.i=30		:eff_hig.i=30		:eff_lim.i=30
+i=3		:eff_wid.i=80		:eff_hig.i=80		:eff_lim.i=30;?
+i=4		:eff_wid.i=80		:eff_hig.i=80		:eff_lim.i=40
+i=5		:eff_wid.i=320		:eff_hig.i=320		:eff_lim.i=250
+;i=2
+i=20   :eff_wid.i=120		:eff_hig.i=120		:eff_lim.i=12000
+
+e_roll=0;0~effect_max の間を数字を回転させる
+effect_max=30;エフェクトの表示限界
+ddim effect_pos,effect_max,4
+	;エフェクトの中心座標と幅、高さを記入
+dim effect_exist,effect_max
+	;エフェクトの存在
+dim effect_roll,effect_max
+	;エフェクトを表示してからの経過回転数
+dim effect_direct,effect_max
+	;エフェクトの向き（向きナシは0）
+dim effect_id,effect_max
+	;エフェクトの種類id
+
+;h_roll=0;0~hantei_max の間を数字を回転させる
+hantei_max=3;追加判定の最大値
+	dim hantei_pattern,hantei_max
+	;	judge_p(10+pstate)が入っている
+	dim hantei_pstate,hantei_max
+	;	pstateが入っている
+	dim hantei_damage,hantei_max
+	;	damage_pが入っている
+	dim hantei_time,hantei_max
+	;	判定が開始してからの経過時間（ルーチン）
+	dim hantei_exist,hantei_max
+	/*	hantei_exist.h_roll= 0or1 判定のON/OFFを指定。
+			0・・・判定が非アクティブである。状態が終わると対消滅する。
+			1・・・判定がアクティブ。*/
+	dim hantei_direct,hantei_max;判定の方向
+	ddim hantei_pos,hantei_max,4
+	/*	hantei_pos.h_roll.0=判定の左上端のx座標
+		hantei_pos.h_roll.1=判定の左上端のy座標
+		hantei_pos.h_roll.2=判定の幅
+		hantei_pos.h_roll.3=判定の高さ
+	*/
+dh_roll=0;0~hantei_max の間を数字を回転させる
+/*
+ダメージ判定の記述方法
+それぞれの判定に判定idを割り当て、
+新規格納先の判定の有無を判断し、当て嵌まらなければ次の格納先に格納する
+どの格納先も指定できなかったら適当なとこにうわがきしろ
+*/
+d_hantei_max=30;ダメージ判定の最大値
+	;dim d_hantei_pattern,hantei_max
+	;	judge_p(10+pstate)が入っている
+	;dim d_hantei_pstate,hantei_max
+	;	pstateが入っている
+	dim d_hantei_weight,d_hantei_max
+	;	damage_pが入っている
+	dim d_hantei_exist,d_hantei_max
+	/*	hantei_exist.h_roll= 0or1 判定のON/OFFを指定。
+			0・・・判定が非アクティブである。状態が終わると対消滅する。
+			1・・・判定がアクティブ。*/
+	dim d_hantei_direct,d_hantei_max;判定の方向
+	ddim d_hantei_pos,d_hantei_max,4
+	/*	hantei_pos.h_roll.0=判定の左上端のx座標
+		hantei_pos.h_roll.1=判定の左上端のy座標
+		hantei_pos.h_roll.2=判定の幅
+		hantei_pos.h_roll.3=判定の高さ*/
+	for i,0,d_hantei_max,1
+		if i==0{
+			d_hantei_pos(i,0)=640.0-100
+			d_hantei_pos(i,1)=480.0-350
+			d_hantei_pos(i,2)=50.0
+			d_hantei_pos(i,3)=50.0
+			d_hantei_exist.i=0}
+	next
+
+gimmick_max=30
+dim gimmick_flag,gimmick_max
+dim gimmick_roll,gimmick_max
+;ギミックについてはここで記述しきれないので下で個別に	
+
+block_max = 30//ステージ作成（長方形の配置などをする）
+	dim bl_ex,block_max;壁の体力
+	dim bl,block_max,4
+	
+	heya1x=0
+	;heya2x=2000-700	一番上に左遷
+	heya3x=heya2x+600
+	heya4x=heya3x+1000
+	heya5x=heya4x+1000-160
+	if difficult==1:px=0.0+heya2x+400 
+	if difficult==2:px=0.0+heya3x+800:gimmick_flag.2=1 
+	if difficult==3:px=0.0+heya4x+30
+	for i,0,block_max,1
+		if i==0{bl_ex.i=1
+			bl(i,0)=0;ゆか長い
+			bl(i,1)=430
+			bl(i,2)=heya2x
+			bl(i,3)=480+50}
+		else:if i==1{bl_ex.i=1
+			bl(i,0)=-200;ひだりのかべ
+			bl(i,1)=-2000
+			bl(i,2)=-40
+			bl(i,3)=480}
+		else:if i==2{bl_ex.i=1;１　天井
+			bl(i,0)=0
+			bl(i,1)=-400
+			bl(i,2)=heya3x-1
+			bl(i,3)=-20}
+		else:if i==3{bl_ex.i=0;１　でっぱり
+			bl(i,0)=320
+			bl(i,1)=480-120
+			bl(i,2)=560
+			bl(i,3)=480}
+		else:if i==4{bl_ex.i=0;１　でっぱり2
+			bl(i,0)=560
+			bl(i,1)=480-480
+			bl(i,2)=heya1x
+			bl(i,3)=480}
+		else:if i==5{bl_ex.i=0;第一の門
+			bl(i,0)=heya1x-60
+			bl(i,1)=-400
+			bl(i,2)=heya1x
+			bl(i,3)=260}
+		else:if i==6{bl_ex.i=0;第一の門（駆動）
+			bl(i,0)=heya1x-45
+			bl(i,1)=240
+			bl(i,2)=heya1x-15
+			bl(i,3)=480-50}
+		else:if i==7{bl_ex.i=1;第二の門
+			bl(i,0)=heya2x-60
+			bl(i,1)=-1000
+			bl(i,2)=heya2x
+			bl(i,3)=260}
+		else:if i==8{bl_ex.i=1;第二の門（駆動）
+			bl(i,0)=heya2x-45
+			bl(i,1)=240
+			bl(i,2)=heya2x-15
+			bl(i,3)=480-50}
+		else:if i==9{bl_ex.i=1;第三の門
+			bl(i,0)=heya3x-60
+			bl(i,1)=-1000
+			bl(i,2)=heya3x
+			bl(i,3)=260}
+		else:if i==10{bl_ex.i=1;第三の門（駆動）
+			bl(i,0)=heya3x-45
+			bl(i,1)=240
+			bl(i,2)=heya3x-15
+			bl(i,3)=480-50}
+		else:if i==11{bl_ex.i=1;ゆか1
+			bl(i,0)=heya2x-45
+			bl(i,1)=430
+			bl(i,2)=heya3x+560
+			bl(i,3)=480+300}
+		else:if i==12{bl_ex.i=1;ゆか3(はざま)
+			bl(i,0)=heya3x+560
+			bl(i,1)=480+120
+			bl(i,2)=heya3x+700
+			bl(i,3)=480+300}
+		else:if i==13{bl_ex.i=1;ゆか2
+			bl(i,0)=heya3x+700
+			bl(i,1)=430
+			bl(i,2)=heya4x+300
+			bl(i,3)=480+300}
+		else:if i==14{bl_ex.i=1;上ゆか1
+			bl(i,0)=heya3x
+			bl(i,1)=480-320
+			bl(i,2)=heya3x+200
+			bl(i,3)=480-300}
+		else:if i==15{bl_ex.i=1;上ゆか2
+			bl(i,0)=heya3x+300
+			bl(i,1)=-120
+			bl(i,2)=heya3x+600
+			bl(i,3)=-100}
+		else:if i==16{bl_ex.i=1;第二の天井
+			bl(i,0)=heya3x-330
+			bl(i,1)=-1000
+			bl(i,2)=heya2x
+			bl(i,3)=-20}
+		else:if i==17{bl_ex.i=1;第4の門
+			bl(i,0)=heya4x-60
+			bl(i,1)=-1000
+			bl(i,2)=heya4x
+			bl(i,3)=260}
+		else:if i==18{bl_ex.i=1;第4の門（駆動）
+			bl(i,0)=heya4x-45
+			bl(i,1)=240
+			bl(i,2)=heya4x-15
+			bl(i,3)=480-50}
+		else:if i==19{bl_ex.i=1;ゆか2
+			bl(i,0)=heya4x
+			bl(i,1)=480-50
+			bl(i,2)=heya5x
+			bl(i,3)=480+50}
+		else:if i==20{bl_ex.i=0;天井4
+			bl(i,0)=heya4x+1
+			bl(i,1)=-400
+			bl(i,2)=heya5x
+			bl(i,3)=-20}
+		else:if i==21{bl_ex.i=1;でっぱり
+			bl(i,0)=heya4x
+			bl(i,1)=480-350-30
+			bl(i,2)=heya4x+80
+			bl(i,3)=480-350}
+			
+	next
+	
+	boss_hpmax=80
+	boss_hp=boss_hpmax
+	
+	block2_max = 10//壊せる壁
+	bl2_color=200;いろ
+	bl2_cdelay=20
+	dim bl2,block2_max,4
+	dim bl2_hp,block2_max;壁の体力
+	dim bl2_hroll,block2_max;殴られ続けるのを阻止する
+	for i,0,bl2_max,1
+		bl2_hroll.i=-1
+	next
+	for i,0,block2_max,1
+		if i==0{
+			bl2(i,0)=heya2x-60-40
+			bl2(i,1)=480-50-180
+			bl2(i,2)=heya2x-60-1
+			bl2(i,3)=480-50-1
+			bl2_hp.i=4}
+		if i==1{;かたい１
+			bl2(i,0)=heya2x+300
+			bl2(i,1)=480-50-100
+			bl2(i,2)=heya2x+300+60
+			bl2(i,3)=480-50
+			bl2_hp.i=0}
+		if i==2{;かたい２
+			bl2(i,0)=heya3x-60-40
+			bl2(i,1)=480-50-180
+			bl2(i,2)=heya3x-60-1
+			bl2(i,3)=480-50-1
+			bl2_hp.i=8}
+		if i==3{;床にある
+			bl2(i,0)=heya3x+560
+			bl2(i,1)=480-50
+			bl2(i,2)=heya3x+600+100
+			bl2(i,3)=480-50+30
+			bl2_hp.i=6}
+		if i==4{;上にある
+			bl2(i,0)=heya3x+300
+			bl2(i,1)=-120-100
+			bl2(i,2)==heya3x+300+40
+			bl2(i,3)=-120
+			bl2_hp.i=6}
+		if i==5{;上にある
+			bl2(i,0)=heya4x+40
+			bl2(i,1)=480-380-180
+			bl2(i,2)==heya4x+80
+			bl2(i,3)=480-380
+			bl2_hp.i=6}
+			;
+	next
+	
+	enemy1_max = 10//enemy1・・・固定砲台
+	en1_color=200;いろ
+	en1_cdelay=20
+	dim en1,enemy1_max,4
+	dim en1_hp,enemy1_max;敵の体力
+	dim en1_ex,enemy1_max;敵の存在
+	dim en1_direct,enemy1_max;敵の向き
+	dim en1_hroll,enemy1_max;殴られ続けるのを阻止する
+	dim en1_roll,enemy1_max;行動のロール
+	dim en1_type,enemy1_max;敵のタイプ
+	for i,0,enemy1_max,1
+		en1_hroll.i=-1
+	next
+	dim en1_dhid,enemy1_max;ダメージid
+	for i,0,enemy1_max,1
+		en1_dhid.i=-1
+	next
+	dim en1_efid,enemy1_max;付随するエフェクトid
+	for i,0,enemy1_max,1
+		en1_efid.i=-1
+	next
+	for i,0,enemy1_max,1
+		if i==0{
+			en1(i,0)=heya3x+560-80
+			en1(i,1)=480+120-80
+			en1(i,2)=heya3x+560
+			en1(i,3)=480+120
+			en1_direct.i=1
+			en1_hp.i=8
+			en1_ex.i=1
+			en1_type.i=0}
+			if i==1{
+			en1(i,0)=heya3x+600-80
+			en1(i,1)=-120-80
+			en1(i,2)=heya3x+600
+			en1(i,3)=-120
+			en1_direct.i=-1
+			en1_hp.i=8
+			en1_ex.i=1
+			en1_type.i=0}
+			if i==2{
+			en1(i,0)=heya3x+300
+			en1(i,1)=480-50-80
+			en1(i,2)=heya3x+380
+			en1(i,3)=480-50
+			en1_direct.i=-1
+			en1_hp.i=4
+			en1_ex.i=1
+			en1_type.i=1}
+			
+			if i==5{
+			en1(i,0)=heya4x+350-80
+			en1(i,1)=430-300-500
+			en1(i,2)=heya4x+350+300-80
+			en1(i,3)=430-500
+			en1_direct.i=-1
+			en1_hp.i=boss_hp
+			en1_ex.i=1
+			en1_type.i=2}
+			if i==3{
+			en1(i,0)=heya4x+350+148-80
+			en1(i,1)=430-300-500
+			en1(i,2)=heya4x+350+300-148-80
+			en1(i,3)=430-290-500
+			en1_direct.i=1
+			en1_hp.i=8
+			en1_ex.i=1
+			en1_type.i=-1}
+	next//*/
+*main
+	
+	repeat
+	redraw 0
+	color 230,230,230
+	boxf
+	
+	gosub *play_music
+	
+	gosub *tempo
+	
+	//アクション
+	getkey esc,27:if esc==1:goto *init
+	if key==64{
+		if bpm_change==0{
+			dialog "speed up"
+			bpm=140
+			tloop = loop_length/(double(bpm)/240184*loop_length)
+			count=90
+			bpm_change=1
+			gravity=0.62;重力加速度
+			jump_v=-11.0
+		}
+		else:if bpm_change==1{
+			dialog "speed down"
+			bpm=70
+			count=190
+			tloop = loop_length/(double(bpm)/240184*loop_length)
+			gravity=0.210;重力加速度
+			jump_v=-6.8
+			bpm_change=0
+		}
+	}
+	//ここらへんにプレイヤーキャラクターの動作
+	
+	
+	
+	stick key,21
+	;if key&16 && OnGround==1{//同様に接地していなくてはいけない（&&でつなぐ）
+	pvy=pvy+gravity
+	if pvy>v_max {pvy=v_max}
+	if OnGround==1&&pvy>2.0:pvy=2.0
+	
+	if nockback_roll==1:nockback_vx=nockback_vx2:Operatable=0
+	if nockback_roll>0{									;禁忌を犯した
+		if nockback_vx-nockback_resist>0:nockback_vx-=nockback_resist
+		px+=nockback_vx*-pdirect						;ノックバック中はキー入力諸々の処理を飛ばす
+		nockback_roll+=1								;終了と同時に滞空中なら-2,接地中なら0に
+		if nockback_roll>=nockback_limit:nockback_roll=0:Operatable=1
+		
+	}
+	else{
+		if pstate==-5{
+			if OnGround>0{pstate=0}
+			else{pstate=-2}
+		}
+	}
+	
+	if Operatable==1{
+	
+	gosub *kirikae;ボタンを押した瞬間の判定（状態の切り替え、行動分岐の図はここに）
+	
+	;--------------------------左右キー------------------------------------------
+	if key&1{
+		;pdirect=-1
+		if transfer_p.0.(10+pstate)==1:pdirect=-1	:px=px+pvx*pdirect
+		}
+	if key&4{
+		;pdirect=1
+		if transfer_p.0.(10+pstate)==1:pdirect=1	:px=px+pvx*pdirect
+		}
+	
+	;--------------------------コンボ処理----------------------------------------
+	if OnCombo>0{//コンボ内の処理、最後の入力から何拍経ったかを記録する
+		if OnRhythm>0{
+			if 		OnCombo==3{OnCombo=10}//10の時8分
+			else:if	OnCombo==2{OnCombo=20}//20の時4分
+		}
+		else{//リズム外
+			if		OnCombo==1{OnCombo=3}
+			else:if	OnCombo==10{OnCombo=2}
+			else:if	OnCombo==20{OnCombo=0:Combo_finish=0}
+		}
+	}
+	else:Combo_finish=0
+	
+	;---------------------状態によって変遷する挙動-----------------------
+	;
+	if OnCombo==0 && OnGround>0{;コンボ外かつ接地していて左右キー入力があると左右移動
+		if (key&1)==%0001||(key&4)==%0100{
+		pstate=-4
+		}
+		else:pstate=0
+	}
+	if pstate==-2&&OnGround>0:pstate=0
+	
+	if pstate==-3 || pstate==1 {
+		if OnGround>0:pstate=0;跳ぶ系のやつ接地すりゃコンボ終わり
+	}
+	if pstate==0||pstate==-4{;コンボ外かつ接地していて左右キー入力があると左右移動
+		if (key&1)==%0001||(key&4)==%0100{
+		pstate=-4
+		}
+		else:pstate=0
+		
+			if OnGround==0:pstate=-2
+	}
+	;-------------
+	if pstate!=18:ppy=10000
+	
+	if OnCombo==0{;コンボ外である
+		if OnGround==0&&pstate!=-3{pstate=-2}
+	}
+}
+else:if pstate!=-5{
+	if OnGround>0{pstate=0}
+}
+
+gosub *gimmick_calculate
+	;-----------------------------------↓追加判定↓-------------------------------------
+	for i,0,hantei_max,1
+		
+		if hantei_exist.i==0:hantei_roll.i=-1:_continue
+		
+		if hantei_pattern.i==1{;パターンが1なので前方にx=pwid,y=phig/2(←py+phig/4の位置に)の大きさの判定を設置。
+			hantei_pos.i.0+=5.0*pdirect
+			if (hantei_pos.i.0-px)*pdirect > pwid:hantei_pos.i.0=px+pwid*pdirect
+			hantei_pos.i.1=py+phig/4
+			;hantei_pos.i.2=0.0+pwid
+			;hantei_pos.i.3=0.0+phig/2
+			if hantei_pstate.i!=pstate:hantei_exist.i=0:hantei_pattern.i=0
+		}
+		if hantei_pattern.i==2{;パターンが2なので後方にx=pwid,y=phig/2(←py+phig/4の位置に)の大きさの判定を設置。
+			hantei_pos.i.0+=-5.0*pdirect
+			if (hantei_pos.i.0-px)*-pdirect > pwid:hantei_pos.i.0=px-pwid*pdirect
+			hantei_pos.i.1=py+phig/4
+			;hantei_pos.i.2=0.0+pwid
+			;hantei_pos.i.3=0.0+phig/2
+			if hantei_pstate.i!=pstate:hantei_exist.i=0:hantei_pattern.i=0
+		}
+		if hantei_pattern.i==3{;パターンが3なので上方にx=pwid,y=phig/2(←py-phig/4の位置に)の大きさの判定を設置。
+			hantei_pos.i.0=px
+			hantei_pos.i.1+=-5.0
+			if abs(hantei_pos.i.1-py) > phig/4:hantei_pos.i.1=py-phig/4
+			;hantei_pos.i.2=0.0+pwid
+			;hantei_pos.i.3=0.0+phig/2
+			if hantei_pstate.i!=pstate:hantei_exist.i=0:hantei_pattern.i=0
+		}
+		if hantei_pattern.i==4{
+			hantei_pos(h_roll,0)=px-pwid/2
+			hantei_pos(h_roll,1)=py+phig/2
+			hantei_pos(h_roll,2)=0.0+pwid*2
+			hantei_pos(h_roll,3)=0.0+phig/2+2
+			if hantei_pstate.i!=pstate:hantei_exist.i=0:hantei_pattern.i=0
+		}
+		if hantei_pattern.i==5{;パターンが1なので前方にx=pwid,y=phig/2(←py+phig/4の位置に)の大きさの判定を設置。
+			hantei_pos.i.0+=2.0*pdirect
+			;if (hantei_pos.i.0-px)*pdirect > pwid:hantei_pos.i.0=px+pwid*pdirect
+			hantei_pos.i.1=py+phig/4
+			;hantei_pos.i.2=0.0+pwid
+			;hantei_pos.i.3=0.0+phig/2
+			;dialog "(hantei_pstate.i)="+(hantei_pstate.i)+"hantei_lim.(hantei_pstate.i)="+hantei_lim.(hantei_pstate.i)
+			if hantei_roll.i>hantei_lim.(10+hantei_pstate.i):hantei_exist.i=0:hantei_pattern.i=0
+			hantei_roll.i++
+		}
+		color 255,0,0
+		if debug_mode_draw==1:boxf hantei_pos.i.0-scrollx,hantei_pos.i.1-scrolly,hantei_pos.i.0+hantei_pos.i.2-scrollx,hantei_pos.i.1+hantei_pos.i.3-scrolly
+	next
+	;-----------------------------------↑追加判定↑-------------------------------------
+	;-------------------------------↓エネミー判定生成↓---------------------------------
+	for i,0,enemy1_max,1
+		if en1_hp.i<=0{
+			if en1_dhid.i != -1:d_hantei_exist.(en1_dhid.i)=0
+			_continue
+		}
+		if scrollx > en1(i,2) || scrollx+screen_width < en1(i,0) || scrolly > en1(i,3) || scrolly+screen_height < en1(i,1):_continue;画面外は未処理
+	
+		if en1_type.i==0 || en1_type.i==1{
+			if t-prety<0{
+				EFF_id=2
+				EFF_cx=en1.i.0+(en1.i.2-en1.i.0)/2+en1_direct.i*20
+				EFF_cy=en1.i.1+20
+				EFF_di=0
+				gosub *play_effect
+				dsplay 60
+			}
+		
+			if en1_type.i==1{
+					if enTYPE1flag==0&&t>tloop/2{
+						EFF_id=2
+						EFF_cx=en1.i.0+(en1.i.2-en1.i.0)/2+en1_direct.i*20
+						EFF_cy=en1.i.1+20
+						EFF_di=0
+						gosub *play_effect
+						enTYPE1flag=1
+						dsplay 60
+					}
+					if enTYPE1flag==1&&t<tloop/2:enTYPE1flag=0
+				}
+			
+			if (t>tloop/16*2 && t<tloop/16*3){;||(t>tloop/16*10 && t<tloop/16*11){;攻撃を出している時
+				if en1_dhid.i==-1{;攻撃を出した瞬間
+					for j,0,d_hantei_max,1
+						if d_hantei_exist.j==0{
+							en1_dhid.i=j
+							d_hantei_direct.j=en1_direct.i
+							d_hantei_exist.j=1
+							;dialog "ty"+en1_type.i+" id:"+en1_dhid.i+" "
+							d_hantei_pos.(en1_dhid.i).0=0.0+en1.i.0+(en1.i.2-0-en1.i.0)*en1_direct.i/10
+							;dialog "こうげきします "+en1_dhid.i
+							dsplay 61:_break};
+							
+					next
+						EFF_id=3+en1_type.i
+						EFF_cx=en1.i.0+(en1.i.2-en1.i.0)/2+(en1.i.2-en1.i.0)*en1_direct.i
+						EFF_cy=en1.i.1+(en1.i.3-en1.i.1)/2
+						EFF_di=en1_direct.i
+						
+						gosub *play_effect						
+						en1_efid.i=k
+				}
+				else{};攻撃を出した瞬間以外
+				;判定の位置と大きさを決定
+				d_hantei_pos.(en1_dhid.i).0+=0.0+4.0*en1_direct.i*(bpm/70)
+				if (d_hantei_pos.(en1_dhid.i).0-en1.i.0)*en1_direct.i > (en1.i.2-en1.i.0){
+					d_hantei_pos.(en1_dhid.i).0=0.0+en1.i.0+(en1.i.2-en1.i.0)*en1_direct.i
+				}
+				d_hantei_pos.(en1_dhid.i).1=0.0+en1.i.1
+				d_hantei_pos.(en1_dhid.i).2=0.0+(en1.i.2-en1.i.0)+10
+				d_hantei_pos.(en1_dhid.i).3=0.0+(en1.i.3-en1.i.1)-10
+				;dialog en1_dhid.i
+			}
+			else:if en1_type.i==1&&(t>tloop/16*10 && t<tloop/16*11){;攻撃を出している時
+				if en1_dhid.i==-1{;攻撃を出した瞬間
+					for j,0,d_hantei_max,1
+						if d_hantei_exist.j==0{
+							en1_dhid.i=j
+							d_hantei_direct.j=en1_direct.i
+							d_hantei_exist.j=1
+							d_hantei_pos.(en1_dhid.i).0=0.0+en1.i.0+(en1.i.2-0-en1.i.0)*en1_direct.i/10
+							;dialog "こうげきします "+en1_dhid.i
+							dsplay 61:_break};
+							
+					next
+						EFF_id=3+en1_type.i
+						EFF_cx=en1.i.0+(en1.i.2-en1.i.0)/2+(en1.i.2-en1.i.0)*en1_direct.i
+						EFF_cy=en1.i.1+(en1.i.3-en1.i.1)/2
+						EFF_di=en1_direct.i
+						
+						gosub *play_effect						
+						en1_efid.i=k
+				}
+				else{};攻撃を出した瞬間以外
+				;判定の位置と大きさを決定
+				d_hantei_pos.(en1_dhid.i).0+=0.0+4.0*en1_direct.i
+				if (d_hantei_pos.(en1_dhid.i).0-en1.i.0)*en1_direct.i > (en1.i.2-en1.i.0){
+					d_hantei_pos.(en1_dhid.i).0=0.0+en1.i.0+(en1.i.2-en1.i.0)*en1_direct.i
+				}
+				d_hantei_pos.(en1_dhid.i).1=0.0+en1.i.1
+				d_hantei_pos.(en1_dhid.i).2=0.0+(en1.i.2-en1.i.0)+10
+				d_hantei_pos.(en1_dhid.i).3=0.0+(en1.i.3-en1.i.1)-10
+				;dialog en1_dhid.i
+			}
+			else{;攻撃を出していないとき
+				if en1_dhid.i!=-1{;攻撃をしまう
+					d_hantei_exist.(en1_dhid.i)=0
+					en1_dhid.i=-1
+				}
+			}
+		}
+		else:if en1_type.i==2{
+			if nanka<430{
+				nanka=nanka+2
+				en1.5.1+=0.0+nanka
+				en1.5.3+=0.0+nanka
+				if en1.5.3>=430{nanka=430
+					en1.5.1=430-300
+					en1.5.3=430
+					en1.3.3=en1.5.1-4
+					en1.3.3=en1.5.1
+					dsplay 71
+				}
+			}
+			if gimmick_flag.3=-1{
+				if en1_hp.3>0{
+					en1.5.1+=int(2.0*cos(6.28*t/tloop*2))
+					en1.5.3+=int(2.0*cos(6.28*t/tloop*2))
+					if t-prety<0{
+						EFF_id=2
+						EFF_cx=en1.i.0+(en1.i.2-en1.i.0)/2
+						EFF_cy=(en1.i.1+en1.i.3)/2
+						EFF_di=0
+						gosub *play_effect
+						dsplay 65
+					}
+					
+					if (t>tloop/16*2 && t<tloop/16*3){;||(t>tloop/16*10 && t<tloop/16*11){;攻撃を出している時
+						if en1_dhid.i==-1{;攻撃を出した瞬間
+							for j,0,d_hantei_max,1
+								if d_hantei_exist.j==0{
+									en1_dhid.i=j
+									d_hantei_direct.j=en1_direct.i
+									d_hantei_exist.j=1
+									d_hantei_pos.(en1_dhid.i).0=heya4x
+									d_hantei_pos.(en1_dhid.i).1=400
+									d_hantei_pos.(en1_dhid.i).2=heya5x-heya4x
+									d_hantei_pos.(en1_dhid.i).3=250
+									;dialog "こうげきします "+en1_dhid.i
+									dsplay 66:_break};
+									
+							next
+								
+						}
+						else{};攻撃を出した瞬間以外;判定の位置と大きさを決定
+					}
+					else{;攻撃を出していないとき
+						if en1_dhid.i!=-1{;攻撃をしまう
+							d_hantei_exist.(en1_dhid.i)=0
+							en1_dhid.i=-1
+						}
+					}
+				}
+			}
+		}
+	next
+	
+	
+	;-------------------------------↑エネミー判定生成↑---------------------------------
+	;!!!!!!!!!!!!!!ネクストのy座標を決定（pyにpvyを足す）!!!!!!!!!!!!!!!!!!!!!!
+	;if py<screen_height+1 : py=py+pvy
+	py=py+pvy
+	
+	;当たり判定//→向き判定をつけてスマートにするなどしたほうがよい
+	OnGround=0
+	;------------------------------------当たり判定-----------------------------------------
+	sq_max=block2_max
+	acce_num=2
+	dim sq,sq_max,4
+	for i,0,sq_max,1
+		for j,0,4,1
+			sq.i.j=bl2.i.j
+		next
+		sq_ex.i=bl2_hp.i
+	next
+	gosub *atari_attack;プレイヤー→対象物
+	
+	sq_max=enemy1_max
+	acce_num=3
+	dim sq,sq_max,4
+	for i,0,sq_max,1
+		for j,0,4,1
+			sq.i.j=en1.i.j
+		next
+		sq_ex.i=en1_ex.i
+	next
+	gosub *atari_attack;プレイヤー→対象物
+
+	;------------------------------------壁に衝突するとき-----------------------------------
+	sq_max=block_max
+	dim sq,sq_max,4
+	for i,0,sq_max,1
+		for j,0,4,1
+			sq.i.j=bl.i.j
+		next
+		sq_ex.i=bl_ex.i
+	next
+	gosub *atari_shikaku;当たり判定（地面だけ）
+	sq_max=block2_max
+	dim sq,sq_max,4
+	for i,0,sq_max,1
+		for j,0,4,1
+			sq.i.j=bl2.i.j
+		next
+		sq_ex.i=bl2_hp.i
+	next
+	gosub *atari_shikaku;当たり判定
+	sq_max=enemy1_max
+	dim sq,sq_max,4
+	for i,0,sq_max,1
+		for j,0,4,1
+			sq.i.j=en1.i.j
+		next
+		sq_ex.i=en1_ex.i
+	next
+	gosub *atari_shikaku;当たり判定
+	;------------------------------------敵→自機の当たり判定-------------------------------
+	if pstate==-5{};被弾ノックバック時は無敵
+	else{
+	for i,0,d_hantei_max,1
+		if d_hantei_exist.i<=0:_continue
+		if d_hantei_pos.i.0<px+pwid&&d_hantei_pos.i.0+d_hantei_pos.i.2>px{;x座標の条件
+			if d_hantei_pos.i.1<py+phig&&d_hantei_pos.i.1+d_hantei_pos.i.3>py{;y座標の条件
+				if d_hantei_direct.i!=0:pdirect=-1*d_hantei_direct.i
+				dsplay 50
+				pstate=-5
+				OnCombo=0
+				nockback_roll=1
+				if pvy<-1.0:pvy=-1.0
+			}
+		}
+		color 255,0,0
+		if debug_mode_draw==1:boxf d_hantei_pos.i.0-scrollx,d_hantei_pos.i.1-scrolly,d_hantei_pos.i.0+d_hantei_pos.i.2-scrollx,d_hantei_pos.i.1+d_hantei_pos.i.3-scrolly
+	next
+	}
+	;------------------------------------当たり判定-----------------------------------------
+	;画面の移動
+	;if OnCombo==0{lookat_exist=0}else:lookat_exist=1
+	if lookat_exist==1{
+		;lookat_x=5000.0
+		;lookat_y=-100.0
+		if (lookat_x-scrollx)/lookat_ratio>lookat_vlimit{scrollx+=lookat_vlimit}
+		else:if (lookat_x-scrollx)/lookat_ratio<-lookat_vlimit{scrollx+=-lookat_vlimit}
+		else:scrollx+=(lookat_x-scrollx)/lookat_ratio
+		if (lookat_y-scrolly)/lookat_ratio>lookat_vlimit{scrolly+=lookat_vlimit}
+		else:if (lookat_y-scrolly)/lookat_ratio<-lookat_vlimit{scrolly+=-lookat_vlimit}
+		else:scrolly+=(lookat_y-scrolly)/lookat_ratio
+	
+		;color 0,0,0:pos 100,200
+		;print "saaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	}
+	else{
+		if px-stage_l_lim<(screen_width-pwid)/2 {scrollx=stage_l_lim }
+		else:if px>stage_width-screen_width+(screen_width-pwid)/2 {scrollx=stage_width-screen_width}
+		else:scrollx=px-(screen_width-pwid)/2
+		
+		if py>(screen_height-phig)/2-(screen_height-480-20) {scrolly=0-(screen_height-480-20)
+		if py+phig>screen_height:scrolly=py-(screen_height-phig)/4*3
+		};画面端ではスクロールしない
+		else:if py<-stage_height+screen_height-(screen_height)/2-pwid {scrolly=-stage_height
+		};画面端ではスクロールしない
+		else{
+			if pstate!=18{//４段目ジャンプでないとき
+				scrolly=py-(screen_height-phig)/2
+			}
+			else:if py>scrolly+(screen_height-phig)/2{
+				scrolly=py-(screen_height-phig)/2
+			}
+		}
+		
+		if abs(presy-scrolly)>scrolllimy:scrolly=double(int(presy+(scrolly-presy)/10))
+	}
+	
+	prepx=px
+	prepy=py
+	presx=scrollx
+	presy=scrolly
+	prety=t
+	
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//↓-↓-↓-↓-↓-↓-↓-↓-↓-↓-↓-↓-↓-　以下描画処理　-↓-↓-↓-↓-↓-↓-↓-↓-↓-↓-↓-↓-↓-↓//
+
+/*
+	//レイヤ最下層（はいけい）
+//*/
+	gmode 2,screen_width,screen_height
+	;pos 0,0
+	;gcopy 12,scrollx/3,(scrolly-40)/3
+	pos 0,0
+	;color 190,190,190
+	;boxf 0,screen_height-150+(scrolly-50)/4,screen_width,screen_height
+	gcopy 11,scrollx/3,(scrolly-50)/4-200
+	;pos 0,0
+	;gcopy 10,scrollx/2,(scrolly-50)/2
+
+	
+	//ブロックの描画	
+	color 0,0,0
+	for i,0,block_max,1
+		if bl_ex.i<=0:_continue
+		if scrollx > bl(i,2) || scrollx+screen_width < bl(i,0) || scrolly > bl(i,3) || scrolly+screen_height < bl(i,1){
+	}else{
+			boxf bl(i,0)-scrollx,bl(i,1)-scrolly,bl(i,2)-scrollx,bl(i,3)-scrolly
+		}
+	next
+	color 0,0,0
+	for i,0,block2_max,1
+		if bl2_hp.i<=0:_continue
+		if scrollx > bl2(i,2) || scrollx+screen_width < bl2(i,0) || scrolly > bl2(i,3) || scrolly+screen_height < bl2(i,1){
+	}else{
+			color bl2_color_-bl2_cdelay*bl2_hp.i,bl2_color_-bl2_cdelay*bl2_hp.i,bl2_color_-bl2_cdelay*bl2_hp.i
+			boxf bl2(i,0)-scrollx,bl2(i,1)-scrolly,bl2(i,2)-scrollx,bl2(i,3)-scrolly
+		}
+	next
+	
+	for i,0,enemy1_max,1
+		if en1_ex.i<=0:_continue
+		if scrollx > en1(i,2) || scrollx+screen_width < en1(i,0) || scrolly > en1(i,3) || scrolly+screen_height < en1(i,1){
+		}else{
+			if en1_type.i==-1{
+				color bl2_color_-bl2_cdelay*en1_hp.i,bl2_color_-bl2_cdelay*en1_hp.i,bl2_color_-bl2_cdelay*en1_hp.i
+				boxf en1(i,0)-scrollx,en1(i,1)-scrolly,en1(i,2)-scrollx,en1(i,3)-scrolly
+			}
+			else:if en1_type.i==0||en1_type.i==1{
+				color 35,35,35
+				boxf en1(i,0)-scrollx,en1(i,1)-scrolly,en1(i,2)-scrollx,en1(i,3)-scrolly
+				warioi=1.0-(double(tloop-t)*double(tloop-t)*double(tloop-t)*double(tloop-t)/double(tloop)/double(tloop)/double(tloop)/double(tloop))
+				if en1_type.i==0:color 220.0-20.0*warioi,150.0-70.0*warioi,140.0-80.0*warioi
+				if en1_type.i==1:color 140.0-80.0*warioi,150.0-70.0*warioi,220.0-20.0*warioi
+				if en1_roll.i>0{
+					jyogen=60.0-30.0*en1_type.i
+					warioi=(1.0-((jyogen-double(en1_roll.i))*(jyogen-double(en1_roll.i))*(jyogen-double(en1_roll.i))/jyogen/jyogen/jyogen))
+					
+					if en1_type.i==0:color 200.0-170.0*warioi,80.0-50.0*warioi,60.0-30.0*warioi
+					if en1_type.i==1:color 60.0-30.0*warioi,80.0-50.0*warioi,200.0-170.0*warioi
+					if  en1_roll.i<jyogen:en1_roll.i+=1;:dialog ""+warioi+","+en1_roll.i
+				}
+				NaKd=5
+				NaKz=30:NaKK=20*en1_direct.i
+				boxf en1(i,0)-scrollx+NaKz+NaKK,en1(i,1)-scrolly+NaKd,en1(i,2)-scrollx-NaKz+NaKK,en1(i,3)-scrolly-NaKd
+				NaKd=15
+				NaKz=35:NaKK=-5*en1_direct.i
+				boxf en1(i,0)-scrollx+NaKz+NaKK,en1(i,1)-scrolly+NaKd,en1(i,2)-scrollx-NaKz+NaKK,en1(i,3)-scrolly-NaKd
+				NaKd=30
+				NaKz=38:NaKK=-20*en1_direct.i
+				boxf en1(i,0)-scrollx+NaKz+NaKK,en1(i,1)-scrolly+NaKd,en1(i,2)-scrollx-NaKz+NaKK,en1(i,3)-scrolly-NaKd
+			}
+			else:if en1_type.i==2{
+				colval=(200*(boss_hpmax-en1_hp.i))/boss_hpmax
+				if en1_hp.i<30{
+					if (cnt\4)/2==0:color 10+colval*5/7,10+colval*3/5,10+colval*3/5
+					if (cnt\4)/2==1:color  55+colval*8/9,55+colval*7/11,55+colval*7/11
+				}
+				else:color 10+colval*5/7,10+colval*2/5,10+colval*2/5
+				boxf en1(i,0)-scrollx,en1(i,1)-scrolly,en1(i,2)-scrollx,en1(i,3)-scrolly
+				color 180,180,180
+				cir_r=16
+				Movmen=0
+				circle (en1.i.0+en1.i.2)/2-cir_r+Movmen-scrollx, (en1.i.1+en1.i.3)/2-cir_r+Movmen-scrolly, (en1.i.0+en1.i.2)/2+cir_r+Movmen-scrollx, (en1.i.1+en1.i.3)/2+cir_r+Movmen-scrolly
+				;
+				color 30,30,30
+				cir_r=8
+				if en1_hp.i>0{;存命のうち
+					pb_dis=sqrt((en1.i.0+150-px+pwid/2)*(en1.i.0+150-px+pwid/2)+(en1.i.1+150-py+phig/4)*(en1.i.1+150-py+phig/4))
+					;dialog ""+pb_dis+" "+asin(double(en1.i.0+150-px+pwid/2)/pb_dis)
+					Movmenx=-7.0*sin(asin(double(en1.i.0+150-px+pwid/2)/pb_dis))
+					Movmeny=-7.0*cos(acos(double(en1.i.1+150-py+phig/4)/pb_dis))
+				}else{;死んだとき
+					Movmenx=4.0*sin(6.28*t/tloop*16)
+					Movmeny=4.0*cos(6.28*t/tloop*16)
+					}
+				circle (en1.i.0+en1.i.2)/2-cir_r+Movmenx-scrollx, (en1.i.1+en1.i.3)/2-cir_r+Movmeny-scrolly, (en1.i.0+en1.i.2)/2+cir_r+Movmenx-scrollx, (en1.i.1+en1.i.3)/2+cir_r+Movmeny-scrolly
+				color 230,230,230
+				cir_r=7
+				circle (en1.i.0+en1.i.2)/2-cir_r+Movmenx-scrollx, (en1.i.1+en1.i.3)/2-cir_r+Movmeny-scrolly, (en1.i.0+en1.i.2)/2+cir_r+Movmenx-scrollx, (en1.i.1+en1.i.3)/2+cir_r+Movmeny-scrolly
+				gsel
+				;
+				color 55,55,55
+				boxf en1.i.0-Di_b-scrollx, en1.i.1-Di_b-scrolly, en1.i.0+150-Di_b-scrollx, en1.i.1+150-Di_b-scrolly
+				boxf en1.i.2-150+Di_b-scrollx, en1.i.1-Di_b-scrolly, en1.i.2+Di_b-scrollx, en1.i.1+150-Di_b-scrolly
+				boxf en1.i.0-Di_b-scrollx, en1.i.3-150+Di_b-scrolly, en1.i.0+150-Di_b-scrollx, en1.i.3+Di_b-scrolly
+				boxf en1.i.2-150+Di_b-scrollx, en1.i.3-150+Di_b-scrolly, en1.i.2+Di_b-scrollx, en1.i.3+Di_b-scrolly
+				if gimmick_flag.3=-1 && en1_hp.3>0{
+					
+					if en1_hp.i>0{;存命のうち
+						if t<tloop/8{
+							if cnt\3==0{
+								color 230*t/(tloop/8),230*t/(tloop/8),230*t/(tloop/8)
+								;dialog "",2:if stat==7:stop
+								hadou_max=50
+								for j,0,hadou_max,1
+									line en1.i.0+150-scrollx,en1.i.1+150-scrolly,heya4x+(heya5x-heya4x)*((hadou_idou+j)\hadou_max)/hadou_max-scrollx,430-scrolly
+								next
+							}
+							hadou_idou+=5
+						}
+						else:if t>tloop/8 && t<tloop/4{
+							gmode 3,1000-160,240,255-255*(t-tloop/8)/(tloop/8)
+							pos heya4x-scrollx,370+(60*(tloop/4-t)*(tloop/4-t)/(tloop/8)/(tloop/8))-scrolly
+							gcopy 647,0,0
+							gmode 3,1000-160,240,255-255*(t-tloop/8)*(t-tloop/8)*(t-tloop/8)/(tloop/8)/(tloop/8)/(tloop/8)
+							pos heya4x-scrollx,400+(20*(tloop/4-t)*(tloop/4-t)/(tloop/8)/(tloop/8))-scrolly
+							gcopy 647,0,0
+						}
+					}
+				}
+			}
+		}
+	next
+	
+	;↓-↓-↓-↓-↓-↓-↓-↓-↓-↓-↓キャラクターの描画↓-↓-↓-↓-↓-↓-↓-↓-↓-↓-↓-↓-↓
+	gosub *chara_draw
+	;↑-↑-↑-↑-↑-↑-↑-↑-↑-↑-↑キャラクターの描画↑-↑-↑-↑-↑-↑-↑-↑-↑-↑-↑-↑-↑
+	;----------------------エフェクトは上のレイヤーに描こうずwwwwwwwww----------------------
+	gosub *draw_effect
+	
+	;-good-good-good-good-good-good-draw_good-good-good-good-good-good-good-good-good-
+	if slider_exist==1:gosub *draw_good;draw_good
+	;-good-good-good-good-good-good-draw_good-good-good-good-good-good-good-good-good-
+	
+	;if OnCombo==0{letterbox_exist=0}else:letterbox_exist=1
+	gosub *draw_letterbox
+	
+//↑-↑-↑-↑-↑-↑-↑-↑-↑-↑-↑-↑-↑-　以上描画処理　-↑-↑-↑-↑-↑-↑-↑-↑-↑-↑-↑-↑-↑-↑//
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	if debug_mode_draw==1{
+	color 100,100,100//デバッグ用各数値
+		pos 160,5
+		print "t = "+t+", loop_length = "+loop_length+" tickflag = "+tickflag+""
+		print "OnRhythm = "+OnRhythm+" pstate = "+pstate+" OnCombo = "+OnCombo
+		print "px = "+px+" py = "+py+" key = "+key+" pdirect = "+pdirect
+		print "pvy = "+pvy+" gravity = "+gravity+" OnGround = "+OnGround
+		print "scrollx = "+scrollx+" scrolly = "+scrolly+"
+		print "good_rolls = "+good_rolls+" ppy = "+ppy+" prescrolly = "+prescrolly+"
+		print "p_movx_flag = "+p_movx_flag+" time_mark = "+time_mark+" roll = "+roll
+		print "combo_finish:space_switch = "+combo_finish+":"+space_switch+""
+		print "h_ex[0]:h_ex[1]:h_ex[2] = "+hantei_exist.0+":"+hantei_exist.1+":"+hantei_exist.2
+		print "h_pa[0]:h_pa[1]:h_pa[2] = "+hantei_pattern.0+":"+hantei_pattern.1+":"+hantei_pattern.2
+		print "d_hantei_exist.0 = "+d_hantei_exist.0+" en1_dhid.0 = "+en1_dhid.0
+		print "nockback_vx = "+nockback_vx
+		print "jump_troll = "+jump_troll+" jump_v = "+jump_v+" jump_grav = "+jump_grav
+		print "l_e = "+letterbox_exist+"l_d = "+letterbox_d
+		print "gim_fl.0 = "+gimmick_flag.0+" gim_rol.0 = "+gimmick_roll.0
+		print "nanka = "+nanka
+	}
+		
+	
+	if slider_exist==1:gosub *drow_slider
+	
+	if gimmick_flag.4==-1{
+		;mci "stop loop"
+		gmode 3,640,480,170
+		pos 0,-480+manma
+		gcopy 1009,0,0
+		if manma<480:manma+=23
+		if manma>480:manma=480
+		}
+	
+	redraw 1
+	await 16
+	loop
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+;~~~~~~~~~~~~~~~~~以下サブルーチン~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//		↓	サブルーチン	↓	音楽関連	↑				↓				↓				↓	//
+//////////////////////////////////////////////////////////////////////////////////////////////////
+*play_music
+	//mci "play start"
+	//音を流したり
+	if introflag<=1{//開始直後（イントロ）の処理
+		if introflag ==0{
+			mci "play start from 0"
+			introflag=1
+		}
+		else:if introflag=1{
+			mci "status start position"
+			now = stat//now はイントロの再生時間を記録するためだけの変数です＞＜ふえぇ
+			if now == start_length {
+				introflag=2
+				mci "play loop from 0"//もっとあたまのいい書き方があるだろうけど、知らん！ｗ
+			}
+		}
+		mci "status start position"
+		t=stat\tloop
+	}
+	else{
+		mci "status loop position"
+		t=stat\tloop 
+		if stat == loop_length : mci "play loop from 0"	
+}	
+return
+
+*tempo
+	OnRhythm=1
+	if abs(t-c_delay)<count{
+		if t<tloop/8 && metronome==7{
+			if clock_flag==1:dsplay 130
+			metronome=0}
+		tickflag=0
+	}
+	else:if abs(t-double(tloop)/8*1-c_delay)<count{
+		if t>tloop/8 && metronome==0{
+			if clock_flag==1:dsplay 110
+			metronome=1}
+		tickflag=1
+	}
+	else:if abs(t-double(tloop)/4-c_delay)<count{
+		if t>double(tloop)/4 && metronome==1{
+			if clock_flag==1:dsplay 120
+			metronome=2}
+		tickflag=2
+	}
+	else:if abs(t-double(tloop)/8*3-c_delay)<count{
+		if t>double(tloop)/8*3 && metronome==2{
+			if clock_flag==1:dsplay 110
+			metronome=3}
+		tickflag=3
+	}
+	else:if abs(t-double(tloop)/2-c_delay)<count{
+		if t>double(tloop)/2 && metronome==3{
+			if clock_flag==1:dsplay 120
+			metronome=4}
+		tickflag=4
+	}
+	else:if abs(t-double(tloop)/8*5-c_delay)<count{
+		if t>double(tloop)/8*5 && metronome==4{
+			if clock_flag==1:dsplay 110
+			metronome=5}
+		tickflag=5
+	}
+	else:if abs(t-double(tloop)/4*3-c_delay)<count{
+		if t>double(tloop)/4*3 && metronome==5{
+			if clock_flag==1:dsplay 120
+			metronome=6}
+		tickflag=6
+	}
+	else:if abs(t-double(tloop)/8*7-c_delay)<count{
+		if t>double(tloop)/8*7 && metronome==6{
+			if clock_flag==1:dsplay 110
+			metronome=7}
+		tickflag=7
+	}
+	else:if abs(t-tloop-c_delay)<count{
+		tickflag=0
+	}
+	else:OnRhythm=0
+return
+
+*drow_slider
+	//背景
+	color 10,10,10
+	boxf 0,0,150,60
+	color 190,190,190
+	boxf 72,42,146,56
+	boxf 56,42,70,56
+	color 10,10,10
+	circle 57,43,70,56
+	
+	//スライダー
+	color 12,12,24
+	boxf sliderx	,slidery	,sliderx+slideroutwidth*2+sliderlength	,slidery+slideroutwidth*2+sliderwidth
+	color 120,90,90
+	boxf slx		,sly		,slx+sliderlength						,sly+sliderwidth
+	color 50,230,50
+	boxf slx+sliderlength/2-safezonewidth	,sly	,slx+sliderlength/2+safezonewidth	,sly+sliderwidth
+	color 70,187,70
+	boxf slx	,sly	,slx+safezonewidth	,sly+sliderwidth
+	boxf slx+sliderlength-safezonewidth	,sly	,slx+sliderlength	,sly+sliderwidth
+	//バー
+	bart =double(t)/tloop*(sliderlength-barwidth)*4+(sliderlength-barwidth)/2
+	
+	while bart>(sliderlength-barwidth)//改善の余地あり
+	bart= bart-(sliderlength-barwidth)
+	wend
+	
+	color 205,205,225
+	boxf slx+ bart -1	,sly-1	,slx+bart+barwidth+1	,sly+sliderwidth+1
+	color 255,255,255
+	boxf slx+bart		,sly	,slx+bart+barwidth		,sly+sliderwidth
+	
+	pos 80,40
+	if OnRhythm==1{
+		color 0,0,0
+		print"correct"
+		color 80,235,80
+		circle 58,44,69,55
+	}
+	else{
+		color 0,0,0
+		print"false"
+		color 235,80,80
+		circle 58,44,69,55
+	}
+return
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//		↑	サブルーチン	↑	音楽関連	↑				↑				↑				↑	//
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+*draw_good
+	if play_good!=0{
+		good.good_rolls.0=play_good
+		good.good_rolls.1=1
+		good.good_rolls.2=int(px)+pwid/2-16+(pwid/2+20)*pdirect
+		good.good_rolls.3=int(py)-5
+		play_good=0
+		good_rolls=good_rolls+1
+		if good_rolls==play_good_max:good_rolls=0
+	}
+	color 0,0,0
+	for i,0,play_good_max,1
+		if good.i.0!=0{
+			pos good.i.2-scrollx,good.i.3-good.i.1-scrolly;a
+			if good.i.0==1{//good
+				print"good";a
+			}
+			else:if good.i.0=-1{//bad
+				print"bad";a
+			}
+			good.i.1=good.i.1+1
+			if good.i.1>good_limit:good.i.0=0
+		}
+		pos 400,300+i*10
+		;print"あ " +good.i.0
+	next
+return
+	
+*draw_letterbox
+	if letterbox_exist==1{letterbox_d+=double(letterbox_limit-letterbox_d)/letterbox_ratio}
+	else				:letterbox_d-=(letterbox_d+3.0)/letterbox_ratio
+	
+	if letterbox_d>0{
+		color 0,0,0
+		boxf 0,0,screen_width,letterbox_d
+		boxf 0,screen_height-letterbox_d,screen_width,screen_height
+	}
+return
+
+*play_effect
+	for k,0,effect_max,1
+		if effect_exist.k==0{
+			effect_id.k=EFF_id
+			effect_exist.k=1;effect_rollとの生存競争
+			effect_direct.k=EFF_di
+			effect_pos.k.0=0.0+EFF_cx
+			effect_pos.k.1=0.0+EFF_cy
+			effect_pos.k.2=0.0+eff_wid.(effect_id.k)
+			effect_pos.k.3=0.0+eff_hig.(effect_id.k)
+			effect_roll.k=1
+		_break};
+	next
+	EFF_di=0
+return
+	
+*draw_effect
+	for i,0,effect_max,1
+		if effect_exist.i=0:_continue;存在しないエフェクトは判定しない
+		;エフェクトの動作を記述する
+		buffer 100+i,eff_wid.(effect_id.i),eff_hig.(effect_id.i)
+		gsel 100+i,0
+		color 0,0,0:boxf
+		switch effect_id.i
+			case 0
+				color 255,255,double(effect_roll.i)/eff_lim.(effect_id.i)*255
+				r_=double(effect_roll.i)
+				l_=double(eff_lim.(effect_id.i))
+				ef_radius=double(eff_wid.(effect_id.i))/2.0*(1.0-((l_-r_)*(l_-r_)*(l_-r_)*(l_-r_)*(l_-r_)/l_/l_/l_/l_/l_))
+				circle eff_wid.(effect_id.i)/2-ef_radius,eff_hig.(effect_id.i)/2-ef_radius,eff_wid.(effect_id.i)/2+ef_radius,eff_wid.(effect_id.i)/2+ef_radius
+				color 0,0,0
+				ef_radius=double(eff_wid.(effect_id.i))/2.0*(1.0-((l_-r_)*(l_-r_)*(l_-r_)*(l_-r_)/l_/l_/l_/l_))
+				;unchi
+				circle eff_wid.(effect_id.i)/2-ef_radius,eff_hig.(effect_id.i)/2-ef_radius,eff_wid.(effect_id.i)/2+ef_radius,eff_wid.(effect_id.i)/2+ef_radius
+			swbreak
+			case 1
+				color 255,255,double(effect_roll.i)/eff_lim.(effect_id.i)*255
+				r_=double(effect_roll.i)
+				l_=double(eff_lim.(effect_id.i))
+				ef_radius=double(eff_wid.(effect_id.i))/2.0*(1.0-((l_-r_)*(l_-r_)*(l_-r_)*(l_-r_)*(l_-r_)/l_/l_/l_/l_/l_))
+				circle eff_wid.(effect_id.i)/2-ef_radius,eff_hig.(effect_id.i)/2-ef_radius,eff_wid.(effect_id.i)/2+ef_radius,eff_wid.(effect_id.i)/2+ef_radius
+				color 0,0,0
+				ef_radius=double(eff_wid.(effect_id.i))/2.0*(1.0-((l_-r_)*(l_-r_)*(l_-r_)/l_/l_/l_))
+				;unchi
+				circle eff_wid.(effect_id.i)/2-ef_radius,eff_hig.(effect_id.i)/2-ef_radius,eff_wid.(effect_id.i)/2+ef_radius,eff_wid.(effect_id.i)/2+ef_radius
+			swbreak
+			case 2
+				color double(effect_roll.i)/eff_lim.(effect_id.i)*55+200,double(effect_roll.i)/eff_lim.(effect_id.i)*55+200,double(effect_roll.i)/eff_lim.(effect_id.i)*55+200
+				r_=double(effect_roll.i)
+				l_=double(eff_lim.(effect_id.i))
+				ef_radius=double(eff_wid.(effect_id.i))/2.0*(1.0-((l_-r_)*(l_-r_)*(l_-r_)*(l_-r_)*(l_-r_)/l_/l_/l_/l_/l_))
+				circle eff_wid.(effect_id.i)/2-ef_radius,eff_hig.(effect_id.i)/2-ef_radius,eff_wid.(effect_id.i)/2+ef_radius,eff_wid.(effect_id.i)/2+ef_radius
+				color 0,0,0
+				ef_radius=double(eff_wid.(effect_id.i))/2.0*(1.0-((l_-r_)*(l_-r_)*(l_-r_)*(l_-r_)/l_/l_/l_/l_))
+				;unchi
+				circle eff_wid.(effect_id.i)/2-ef_radius,eff_hig.(effect_id.i)/2-ef_radius,eff_wid.(effect_id.i)/2+ef_radius,eff_wid.(effect_id.i)/2+ef_radius
+			swbreak
+			case 3
+				color 255-double(effect_roll.i)/eff_lim.(effect_id.i)*15,255-double(effect_roll.i)/eff_lim.(effect_id.i)*195,255-double(effect_roll.i)/eff_lim.(effect_id.i)*195
+				r_=double(effect_roll.i)
+				l_=double(eff_lim.(effect_id.i))
+				ef_radius=double(eff_wid.(effect_id.i))/2.0*(1.0-((l_-r_)*(l_-r_)*(l_-r_)*(l_-r_)*(l_-r_)/l_/l_/l_/l_/l_))
+				circle eff_wid.(effect_id.i)/2*(1-effect_direct.i)-ef_radius*2,eff_hig.(effect_id.i)/2-ef_radius,eff_wid.(effect_id.i)*(1-effect_direct.i)+ef_radius*2,eff_wid.(effect_id.i)/2+ef_radius
+				color 0,0,0
+				ef_radius=double(eff_wid.(effect_id.i))/2.0*(1.0-((l_-r_)*(l_-r_)/l_/l_))
+				;unchi
+				circle eff_wid.(effect_id.i)/2*(1-effect_direct.i)-ef_radius*2,eff_hig.(effect_id.i)/2-1.2*ef_radius,eff_wid.(effect_id.i)*(1-effect_direct.i)+ef_radius*2,eff_wid.(effect_id.i)/2+1.2*ef_radius
+				;repeat eff_hig.(effect_id.i)
+	
+					;loop
+			swbreak
+			case 4
+				;color 255-double(effect_roll.i)/eff_lim.(effect_id.i)*15,255-double(effect_roll.i)/eff_lim.(effect_id.i)*195,255-double(effect_roll.i)/eff_lim.(effect_id.i)*195
+				color 255-double(effect_roll.i)/eff_lim.(effect_id.i)*195,255-double(effect_roll.i)/eff_lim.(effect_id.i)*195,255-double(effect_roll.i)/eff_lim.(effect_id.i)*15
+				r_=double(effect_roll.i)
+				l_=double(eff_lim.(effect_id.i))
+				ef_radius=double(eff_wid.(effect_id.i))/2.0*(1.0-((l_-r_)*(l_-r_)*(l_-r_)*(l_-r_)*(l_-r_)/l_/l_/l_/l_/l_))
+				circle eff_wid.(effect_id.i)/2*(1-effect_direct.i)-ef_radius*2,eff_hig.(effect_id.i)/2-ef_radius,eff_wid.(effect_id.i)*(1-effect_direct.i)+ef_radius*2,eff_wid.(effect_id.i)/2+ef_radius
+				color 0,0,0
+				ef_radius=double(eff_wid.(effect_id.i))/2.0*(1.0-((l_-r_)*(l_-r_)/l_/l_))
+				circle eff_wid.(effect_id.i)/2*(1-effect_direct.i)-ef_radius*2,eff_hig.(effect_id.i)/2-1.2*ef_radius,eff_wid.(effect_id.i)*(1-effect_direct.i)+ef_radius*2,eff_wid.(effect_id.i)/2+1.2*ef_radius
+			swbreak
+			case 5
+				color 255,255,double(effect_roll.i)/eff_lim.(effect_id.i)*255
+				r_=double(effect_roll.i)
+				l_=double(eff_lim.(effect_id.i))
+				ef_radius=double(eff_wid.(effect_id.i))/2.0*(1.0-((l_-r_)*(l_-r_)*(l_-r_)*(l_-r_)*(l_-r_)/l_/l_/l_/l_/l_))
+				circle eff_wid.(effect_id.i)/2-ef_radius,eff_hig.(effect_id.i)/2-ef_radius,eff_wid.(effect_id.i)/2+ef_radius,eff_wid.(effect_id.i)/2+ef_radius
+				color 0,0,0
+				ef_radius=double(eff_wid.(effect_id.i))/2.0*(1.0-((l_-r_)*(l_-r_)*(l_-r_)*(l_-r_)/l_/l_/l_/l_))
+				;unchi
+				circle eff_wid.(effect_id.i)/2-ef_radius,eff_hig.(effect_id.i)/2-ef_radius,eff_wid.(effect_id.i)/2+ef_radius,eff_wid.(effect_id.i)/2+ef_radius
+			swbreak
+		swend
+		;エフェクトを描画する
+		gsel 0,0
+		color 0,0,0
+		gmode 2,eff_wid.(effect_id.i),eff_hig.(effect_id.i)
+		switch effect_id.i
+			case 0
+				pos	effect_pos.i.0-eff_wid.(effect_id.i)/2-scrollx,effect_pos.i.1-eff_hig.(effect_id.i)/2-scrolly
+				gcopy 100+i,0,0
+			swbreak
+			case 1
+				pos	effect_pos.i.0-eff_wid.(effect_id.i)/2-scrollx,effect_pos.i.1-eff_hig.(effect_id.i)/2-scrolly
+				gcopy 100+i,0,0
+				swbreak
+			case 2
+				pos	effect_pos.i.0-eff_wid.(effect_id.i)/2-scrollx,effect_pos.i.1-eff_hig.(effect_id.i)/2-scrolly
+				gcopy 100+i,0,0
+				swbreak
+			case 3
+				pos	effect_pos.i.0-eff_wid.(effect_id.i)/2-scrollx,effect_pos.i.1-eff_hig.(effect_id.i)/2-scrolly
+				gcopy 100+i,0,0
+				swbreak
+			case 4
+				pos	effect_pos.i.0-eff_wid.(effect_id.i)/2-scrollx,effect_pos.i.1-eff_hig.(effect_id.i)/2-scrolly
+				gcopy 100+i,0,0
+				swbreak
+			case 5
+				pos	effect_pos.i.0-eff_wid.(effect_id.i)/2-scrollx,effect_pos.i.1-eff_hig.(effect_id.i)/2-scrolly
+				gcopy 100+i,0,0
+				swbreak
+			case 20
+				color 255,255,0
+				circle effect_pos.i.0-(effect_pos.i.2)/2-scrollx,effect_pos.i.1-(effect_pos.i.3)/2-scrolly, effect_pos.i.0+(effect_pos.i.2)/2-scrollx,effect_pos.i.1+(effect_pos.i.3)/2-scrolly
+			swbreak
+		swend
+		;描画し終える
+		effect_roll.i+=1
+		if effect_roll.i>=eff_lim(effect_id.i):effect_roll.i=0:effect_exist.i=0
+	next
+return
+	
+*atari_attack;自機→敵に攻撃する時の処理
+	for i,0,hantei_max,1
+		for j,0,sq_max,1
+			if hantei_exist.i<=0{
+				switch acce_num
+					case 2
+						if i==bl2_hroll.j:bl2_hroll.j=-1
+					swbreak
+					case 3
+						if i==en1_hroll.j:en1_hroll.j=-1
+					swbreak
+				swend
+				_continue
+			}
+			if sq_ex.j<=0:_continue
+			if hantei_pos.i.0<sq.j.2&&hantei_pos.i.0+hantei_pos.i.2>sq.j.0{;x座標の条件
+				if hantei_pos.i.1<sq.j.3&&hantei_pos.i.1+hantei_pos.i.3>sq.j.1{;y座標の条件
+					switch acce_num
+						case 2
+							if i!=bl2_hroll.j{;殴られた瞬間に発動
+								bl2_hroll.j=i
+								somatsuna_flag=0
+								dsplay 68
+								if bl2_hp.j>0{
+									bl2_hp.j-=hantei_damage.i
+									if bl2_hp.j<=0{;死ぬとき
+										somatsuna_flag=1
+										}
+								}
+								;bl2_hp.j-=hantei_damage.i
+								;if sq.j.0-(hantei_pos.i.0-sq.j.1)
+								;EFF_id=0
+								if somatsuna_flag==0{
+									EFF_id=0
+								else:if somatsuna_flag==1{
+									EFF_id=1
+								}
+								EFF_cx=sq.j.0
+								EFF_cy=hantei_pos.i.1+(hantei_pos.i.3)/2
+								EFF_di=0
+								;closest_side=0...左、1...上、2...右、3...下
+								gosub *closest_side_judge
+								if closest_side==0 || closest_side==2{
+									EFF_cx=sq.j.closest_side
+									if hantei_pos.i.1+(hantei_pos.i.3)/2<sq.j.1{EFF_cy=sq.j.1}
+									else:if hantei_pos.i.1+(hantei_pos.i.3)/2>sq.j.3{EFF_cy=sq.j.3}
+									else{EFF_cy=hantei_pos.i.1+(hantei_pos.i.3)/2}
+								}
+								else:if closest_side==1 || closest_side==3{
+									EFF_cy=sq.j.closest_side
+									if hantei_pos.i.0+(hantei_pos.i.2)/2<sq.j.0{EFF_cx=sq.j.0}
+									else:if hantei_pos.i.0+(hantei_pos.i.2)/2>sq.j.2{EFF_cx=sq.j.2}
+									else{EFF_cx=hantei_pos.i.0+(hantei_pos.i.2)/2}
+								}
+								gosub *play_effect
+								
+								
+							}
+						swbreak
+						case 3
+							if i!=en1_hroll.j{;殴られた瞬間に発動
+								en1_hroll.j=i
+								somatsuna_flag=0
+								dsplay 67
+								if en1_hp.j>0{
+									en1_hp.j-=hantei_damage.i
+									if en1_hp.j<=0{;死ぬとき
+										if en1_type.j==-1{
+											dsplay 64
+											en1_ex.j=0
+											nanka=0.0
+										}else:dsplay 62
+										;
+										en1_roll.j=1
+										somatsuna_flag=1
+										}
+								}
+	
+								EFF_cx=sq.j.0
+								EFF_cy=hantei_pos.i.1+(hantei_pos.i.3)/2
+								EFF_di=0
+								if somatsuna_flag==0{
+									EFF_id=0
+								else:if somatsuna_flag==1{
+									EFF_id=1
+								}
+								gosub *closest_side_judge
+								if closest_side==0 || closest_side==2{
+									EFF_cx=sq.j.closest_side
+									if hantei_pos.i.1+(hantei_pos.i.3)/2<sq.j.1{EFF_cy=sq.j.1}
+									else:if hantei_pos.i.1+(hantei_pos.i.3)/2>sq.j.3{EFF_cy=sq.j.3}
+									else{EFF_cy=hantei_pos.i.1+(hantei_pos.i.3)/2}
+								}
+								else:if closest_side==1 || closest_side==3{
+									EFF_cy=sq.j.closest_side
+									if hantei_pos.i.0+(hantei_pos.i.2)/2<sq.j.0{EFF_cx=sq.j.0}
+									else:if hantei_pos.i.0+(hantei_pos.i.2)/2>sq.j.2{EFF_cx=sq.j.2}
+									else{EFF_cx=hantei_pos.i.0+(hantei_pos.i.2)/2}
+								}
+								gosub *play_effect
+							}
+						swbreak
+					swend
+				}
+			}
+		next
+	next
+return
+	
+*atari_shikaku
+	;dim sq,sq_max,4
+	for i,0,sq_max,1
+		if sq_ex.i<=0:_continue;存在しないブロックは判定対象外
+		if sq(i,0) < px+pwid&& sq(i,2) > px	&& sq(i,1) < py+phig && sq(i,3) > py {
+			if abs(px+pwid-sq(i,0))<abs(px-sq(i,2)){	//close abs(px+pwid-bl(i,0))
+				if abs(py+phig-sq(i,1))<abs(py-sq(i,3)){	// close abs(py+phig-bl(i,1))
+					if abs(abs(px+pwid-sq(i,0))-abs(py+phig-sq(i,1))) < close{//
+						px=-1.0+sq(i,0)-pwid
+						;py=-1.0+sq(i,1)-(phig-1)
+						OnGround=1
+					}
+					else: if abs(px+pwid-sq(i,0))<abs(py+phig-sq(i,1)){px=-1.0+sq(i,0)-pwid}
+					else{py=-1.0+sq(i,1)-(phig-1)
+						OnGround=1}
+				}
+				else{										// close abs(py-bl(i,3))
+					if abs(abs(px+pwid-sq(i,0))-abs(py-sq(i,3))) < close{//
+						px=-1.0+sq(i,0)-pwid
+						py=1.0+sq(i,3)
+					}
+					else: if abs(px+pwid-sq(i,0))<abs(py-sq(i,3)){px=-1.0+sq(i,0)-pwid}
+					else{py=1.0+sq(i,3)
+						if pvy<-2.0:pvy=-2.0
+					}
+				}
+			}
+			else{										//close abs(px-bl(i,2))
+				if abs(py+phig-sq(i,1))<abs(py-sq(i,3)){	// close abs(py+phig-bl(i,1))
+					if abs(abs(px-sq(i,2))-abs(py+phig-sq(i,1))) < close{//
+						px=1.0+sq(i,2)
+						;py=-1.0+sq(i,1)-(phig-1)
+						OnGround=1
+					}
+					else:if abs(px-sq(i,2))<abs(py+phig-sq(i,1)){px=1.0+sq(i,2)}
+					else{py=-1.0+sq(i,1)-(phig-1)
+						OnGround=1}
+				}
+				else{										// close abs(py-bl(i,3))
+					if abs(abs(px-sq(i,2))-abs(py-sq(i,3))) < close{//
+						px=1.0+sq(i,2)
+						py=1.0+sq(i,3)
+					}
+					else:if abs(px-sq(i,2))<abs(py-sq(i,3)){px=1.0+sq(i,2)}
+					else{py=1.0+sq(i,3)
+						if pvy<-2.0:pvy=-2.0
+					}
+				}
+			}
+			;pos 140,300
+			;print "a"
+		}
+	next//*/
+return
+
+*chara_draw
+	color 2,255,0;透過色をここで指定
+	gmode 4,pwid,phig,255
+	;gmode 0,pwid,phig
+	if anime_pattern(10+pstate)==-1{;回転処理をする
+		pos px-scrollx+pwid/2,py-scrolly+phig/2
+		grotate 2+pdirect,1000-1000*pdirect+(pwid*pstate+pwid*10+pwid/2-pwid/2*pdirect)*pdirect,(roll/coma\anime_koma(10+pstate))*phig,rotate*14*pdirect
+	}
+	else:if anime_pattern(10+pstate)==0{;パターンが0なので画像をルーピ
+		pos px-scrollx,py-scrolly
+		gcopy 2+pdirect,1000-1000*pdirect+(pwid*pstate+pwid*10+pwid/2-pwid/2*pdirect)*pdirect,(roll/coma\anime_koma(10+pstate))*phig
+	}
+	else:if anime_pattern(10+pstate)=1{;パターンが1なので画像をストッピ
+		pos px-scrollx,py-scrolly
+		if roll/coma>anime_koma(10+pstate)-1{
+			gcopy 2+pdirect,1000-1000*pdirect+(pwid*pstate+pwid*10+pwid/2-pwid/2*pdirect)*pdirect,(anime_koma(10+pstate)-1)*phig
+			}
+		else:gcopy 2+pdirect,1000-1000*pdirect+(pwid*pstate+pwid*10+pwid/2-pwid/2*pdirect)*pdirect,(roll/coma)*phig
+	}
+	else:if anime_pattern(10+pstate)=11{;パターンが11なので前方に追加＋画像をストッピ
+		pos px-scrollx,py-scrolly
+		if roll/coma>anime_koma(10+pstate)-1{
+			gcopy 2+pdirect,1000-1000*pdirect+(pwid*pstate+pwid*10+pwid/2-pwid/2*pdirect)*pdirect,(anime_koma(10+pstate)-1)*phig*2
+			}
+		else:gcopy 2+pdirect,1000-1000*pdirect+(pwid*pstate+pwid*10+pwid/2-pwid/2*pdirect)*pdirect,(roll/coma)*phig*2
+		pos px-scrollx+pwid*pdirect,py-scrolly
+		if roll/coma>anime_koma(10+pstate)-1{
+			gcopy 2+pdirect,1000-1000*pdirect+(pwid*pstate+pwid*10+pwid/2-pwid/2*pdirect)*pdirect,(anime_koma(10+pstate)-1)*phig*2+phig
+			}
+		else:gcopy 2+pdirect,1000-1000*pdirect+(pwid*pstate+pwid*10+pwid/2-pwid/2*pdirect)*pdirect,(roll/coma)*phig*2+phig
+	}
+	else:if anime_pattern(10+pstate)=12{;パターンが12なので後方に追加＋画像をストッピ
+		pos px-scrollx,py-scrolly
+		if roll/coma>anime_koma(10+pstate)-1{
+			gcopy 2+pdirect,1000-1000*pdirect+(pwid*pstate+pwid*10+pwid/2-pwid/2*pdirect)*pdirect,(anime_koma(10+pstate)-1)*phig*2
+			}
+		else:gcopy 2+pdirect,1000-1000*pdirect+(pwid*pstate+pwid*10+pwid/2-pwid/2*pdirect)*pdirect,(roll/coma)*phig*2
+		pos px-scrollx-pwid*pdirect,py-scrolly
+		if roll/coma>anime_koma(10+pstate)-1{
+			gcopy 2+pdirect,1000-1000*pdirect+(pwid*pstate+pwid*10+pwid/2-pwid/2*pdirect)*pdirect,(anime_koma(10+pstate)-1)*phig*2+phig
+			}
+		else:gcopy 2+pdirect,1000-1000*pdirect+(pwid*pstate+pwid*10+pwid/2-pwid/2*pdirect)*pdirect,(roll/coma)*phig*2+phig
+	}
+	else{;なんかその他のやつ
+		pos px-scrollx,py-scrolly
+		gcopy 2+pdirect,1000-1000*pdirect+(pwid*pstate+pwid*10+pwid/2-pwid/2*pdirect)*pdirect,(roll/coma\anime_koma(10+pstate))*phig
+	}
+	
+	roll=roll+1
+	rotate=rotate-0.4
+	;boxf px-scrollx,py-scrolly,px+pwid-scrollx,py+phig-scrolly
+return
+
+*closest_side_judge
+								if abs(hantei_pos.i.0-sq.j.2)<abs((hantei_pos.i.0+hantei_pos.i.2)-sq.j.0){
+									;物体の右端が近いとき
+									if abs(hantei_pos.i.1-sq.j.3)<abs((hantei_pos.i.1+hantei_pos.i.3)-sq.j.1){
+										;物体の右端が下端が近いとき
+										if  abs(hantei_pos.i.0-sq.j.2)<abs(hantei_pos.i.1-sq.j.3){
+											;最近傍は右端
+											closest_side=2
+										}
+										else{
+											;最近傍は下端
+											closest_side=3
+										}
+									}
+									else{
+										;物体の右端が上端が近いとき
+										if  abs(hantei_pos.i.0-sq.j.2)<abs((hantei_pos.i.1+hantei_pos.i.3)-sq.j.1){
+											;最近傍は右端
+											closest_side=2
+										}
+										else{
+											;最近傍は上端
+											closest_side=1
+										}
+									}
+								}
+								else{
+									;物体の左端が近いとき
+									if abs(hantei_pos.i.1-sq.j.3)<abs((hantei_pos.i.1+hantei_pos.i.3)-sq.j.1){
+										;物体の左端が下端が近いとき
+										if  abs((hantei_pos.i.0+hantei_pos.i.2)-sq.j.0)<abs(hantei_pos.i.1-sq.j.3){
+											;最近傍は左端
+											closest_side=0
+										}
+										else{
+											;最近傍は下端
+											closest_side=3
+										}
+									}
+									else{
+										;物体の左端が上端が近いとき
+										if  abs((hantei_pos.i.0+hantei_pos.i.2)-sq.j.0)<abs((hantei_pos.i.1+hantei_pos.i.3)-sq.j.1){
+											;最近傍は左端
+											closest_side=0
+										}
+										else{
+											;最近傍は上端
+											closest_side=1
+										}
+									}
+								}
+								return
+
+*kirikae
+	if (key&16)==%10000{;ボタンを押した瞬間の判定（状態の切り替え、行動分岐の図はここに）
+		if OnCombo>0{//コンボ中のボタン処理
+			if space_switch==0{//
+					if OnRhythm>0{		;リズム中に押されたボタン,ここの中に、種々の状態に対応して次の状態に変化させるあれを書く
+						;
+						if pstate==1&&OnCombo==10{//元1、8分を打ち13へ
+							pstate=12
+						}
+						else:if pstate==1&&OnCombo==20{//元1、4分を打ち2へ
+							pstate=2
+						}
+						else:if pstate==2&&OnCombo==10{
+							pstate=9
+						}
+						else:if pstate==2&&OnCombo==20{
+							pstate=3
+						}
+						else:if pstate==3&&OnCombo==10{
+							pstate=8
+							;OnCombo=20;フィニッシュ技なのでコンボ終了
+							combo_finish=1
+						}
+						else:if pstate==3&&OnCombo==20{
+							pstate=4
+						}
+						else:if pstate==4&&OnCombo==20{
+							pstate=5
+						}
+						else:if pstate==5&&OnCombo==20{
+							pstate=6
+						}
+						else:if pstate==6&&OnCombo==20{
+							pstate=3
+						}
+						else:if pstate==4&&OnCombo==10{
+							;OnCombo=0
+							;pstate=0
+							goto *wakaranai
+						}
+						else:if pstate==5&&OnCombo==10{
+							goto *wakaranai
+						}
+						else:if pstate==6&&OnCombo==10{
+							goto *wakaranai
+						}
+						else:if pstate==9&&OnCombo==10{
+							pstate=11
+						}
+						else:if pstate==9&&OnCombo==20{
+							pstate=10
+							;OnCombo=20;フィニッシュ技なのでコンボ終了
+							combo_finish=1
+						}
+						else:if pstate==11&&OnCombo==10{
+							pstate=9;
+						}
+						else:if pstate==11&&OnCombo==20{
+							pstate=10
+							;OnCombo=20;フィニッシュ技なのでコンボ終了
+							combo_finish=1
+						}
+						else:if pstate==12&&OnCombo==10{
+							pstate=16
+						}
+						else:if pstate==12&&OnCombo==20{
+							pstate=13
+						}
+						else:if pstate==13&&OnCombo==10{
+							pstate=15
+							;OnCombo=20;フィニッシュ技なのでコンボ終了
+							combo_finish=1
+						}
+						else:if pstate==13&&OnCombo==20{
+							pstate=14
+							;OnCombo=20;フィニッシュ技なのでコンボ
+							combo_finish=1
+						}
+						else:if pstate==16&&OnCombo==10{
+							ppy=py
+							pstate=18
+						}
+						else:if pstate==16&&OnCombo==20{
+							pstate=17
+							;OnCombo=20;フィニッシュ技なのでコンボ終了
+							combo_finish=1
+						}
+						else:if pstate==18&&OnCombo==10{
+							py=ppy
+							pstate=18
+						else:if pstate==18&&OnCombo==20{
+							py=ppy
+							pstate=17
+							;OnCombo=20;フィニッシュ技なのでコンボ終了
+							combo_finish=1;n打目を数える変数に置き換えたらいいんじゃないかな
+						}
+						else{
+								goto *wakaranai;ヤバい
+							}
+						if SE_flag==1:dsplay 10+pstate
+						;
+						if transfer_p.1.(10+pstate)==0{};y挙動パターンが0なので操作なし
+						else:if transfer_p.1.(10+pstate)==1||transfer_p.1.(10+pstate)==2{
+							pvy=jump_v:OnGround=0:jump_tmark=t};y挙動パターンが1,2なので上速度の代入
+						else:if transfer_p.1.(10+pstate)==3{;y挙動パターンが3なので急降下アタック
+							;変数 ymin にプレイヤーとのｙの最短距離を代入し、ここのbl(i,1)にキャラクタを瞬間移動させる
+							ymin=50000.0
+							;------------------------以下コピペ-----------------
+							sq_max=block_max
+								dim sq,sq_max,4
+								for i,0,sq_max,1
+									for j,0,4,1
+										sq.i.j=bl.i.j
+								next
+								sq_ex.i=bl_ex.i
+							next
+							for i,0,sq_max,1;一番近い地面を判定する
+								if sq_ex.i<=0:_continue;存在しないブロックは判定対象外
+								ydef=0.0+sq(i,1)-(py+phig)
+								if sq(i,0) < px+pwid && sq(i,2) > px && 0.0+sq(i,1)-(prepy+phig)>=0{
+									if ydef<ymin:ymin=ydef
+								};
+							next;
+							;------------------------以下コピペ-----------------
+							sq_max=block2_max
+								dim sq,sq_max,4
+								for i,0,sq_max,1
+									for j,0,4,1
+										sq.i.j=bl2.i.j
+								next
+								sq_ex.i=bl2_hp.i
+							next
+							for i,0,sq_max,1;一番近い地面を判定する
+								if sq_ex.i<=0:_continue;存在しないブロックは判定対象外
+								ydef=0.0+sq(i,1)-(py+phig)
+								if sq(i,0) < px+pwid && sq(i,2) > px && 0.0+sq(i,1)-(prepy+phig)>=0{
+									if ydef<ymin:ymin=ydef
+								};
+							next;
+							;------------------------以下コピペ-----------------
+							sq_max=enemy1_max
+								dim sq,sq_max,4
+								for i,0,sq_max,1
+									for j,0,4,1
+										sq.i.j=en1.i.j
+								next
+								sq_ex.i=en1_ex.i
+							next
+							for i,0,sq_max,1;一番近い地面を判定する
+								if sq_ex.i<=0:_continue;存在しないブロックは判定対象外
+								ydef=0.0+sq(i,1)-(py+phig)
+								if sq(i,0) < px+pwid && sq(i,2) > px && 0.0+sq(i,1)-(prepy+phig)>=0{
+									if ydef<ymin:ymin=ydef
+								};
+							next;
+							;------------------------以上コピペ-----------------
+							if ymin<50000.0{;dialog"py = "+py+" ymin = "+ymin
+								py=py+ymin}
+							};
+						;if pstate==17||pstate==14||pstate==15||pstate==10||pstate==8{}
+						OnCombo=1
+						if combo_finish==1:OnCombo=10
+	
+						if judge_p(10+pstate)>0{;判定を新たに生む行動がおこなわれたとき、新たに判定を初期化
+							hantei_pattern.h_roll=judge_p(10+pstate)
+							hantei_direct.h_roll=pdirect
+							hantei_exist.h_roll=1
+							hantei_pstate.h_roll=pstate
+							hantei_damage.h_roll=damage_p.(10+pstate)
+							if hantei_pattern.h_roll==1{;パターンが1なので前方にx=pwid,y=phig/2(←py+phig/4の位置に)の大きさの判定を設置。
+								hantei_pos.h_roll.0=px+pwid*pdirect*0
+								hantei_pos.h_roll.1=py+phig/4
+								hantei_pos.h_roll.2=0.0+pwid
+								hantei_pos.h_roll.3=0.0+phig/2
+							}
+							if hantei_pattern.h_roll==2{;パターンが2なので後方にx=pwid,y=phig/2(←py+phig/4の位置に)の大きさの判定を設置。
+								hantei_pos.h_roll.0=px-pwid*pdirect*0
+								hantei_pos.h_roll.1=py+phig/4
+								hantei_pos.h_roll.2=0.0+pwid
+								hantei_pos.h_roll.3=0.0+phig/2
+							}
+							if hantei_pattern.h_roll==3{;パターンが3なので上方にx=pwid,y=phig/2(←py-phig/4の位置に)の大きさの判定を設置。
+								hantei_pos.h_roll.0=px
+								hantei_pos.h_roll.1=py-phig/4*0
+								hantei_pos.h_roll.2=0.0+pwid
+								hantei_pos.h_roll.3=0.0+phig/2
+							}
+							if hantei_pattern.h_roll==4{
+								hantei_pos(h_roll,0)=px-pwid/2
+								hantei_pos(h_roll,1)=py+phig/2
+								hantei_pos(h_roll,2)=0.0+pwid*2
+								hantei_pos(h_roll,3)=0.0+phig/2+2
+							}
+							if hantei_pattern.h_roll==5{
+								hantei_pos.h_roll.0=px+pwid*pdirect/2
+								hantei_pos.h_roll.1=py+phig/4
+								hantei_pos.h_roll.2=0.0+pwid
+								hantei_pos.h_roll.3=0.0+phig/2
+								hantei_roll.h_roll=1
+								
+							}
+							h_roll=(h_roll+1)\hantei_max
+						}
+						play_good=1
+						time_mark=t
+						roll=0
+					}
+					else{//リズム外に押されたボタン,
+						OnCombo=0
+						play_good=-1
+					}
+				space_switch=1
+			}
+		}
+		else{//コンボ外のボタン処理・・・接地していればジャンプ、また、リズム範囲での場合分け
+			if OnGround>0{
+				if space_switch==0{
+					if OnRhythm==1{//コンボ外からの入力、１拍目に乗るのに成功したやつ
+						pstate=1
+						pvy=jump_v
+						jump_tmark=t
+						OnGround=0
+						OnCombo=1
+						play_good=1
+					}
+					else{;//コンボ外からの入力、１拍目に乗るのに失敗
+						pstate=-3
+						pvy=jump_v
+						jump_tmark=t
+						OnGround=0
+						play_good=-1
+					}
+					if SE_flag==1:dsplay 11
+					time_mark=t
+					roll=0
+					space_switch=1
+				}
+			}
+		}
+	}
+	else{;キーアクティブ化
+		if OnCombo>0{//コンボ中のボタン初期化処理、リズム失敗領域に達したらボタン解禁
+			if OnRhythm==0:space_switch=0
+		}
+		else{//コンボ外、接地したらボタン解禁
+			if OnGround>0:space_switch=0
+		}
+		if combo_finish==1:space_switch=1
+	}
+	
+*wakaranai
+return

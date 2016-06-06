@@ -1,0 +1,270 @@
+goto *EOF
+*gimmick_calculate
+/*	i=0
+	if gimmick_flag.i==0{
+		if px>heya1x-30:gimmick_flag.i=1
+		if px>heya1x+200:gimmick_flag.i=-1
+	}
+if gimmick_flag.i!=-1:goto *shit*/
+	
+	i=0
+	if gimmick_flag.i==0{
+		if bl2_hp.0<=0:gimmick_flag.i=1
+		if px>heya2x{;強制終了
+			letterbox_exist=0
+					gimmick_flag.i=-1
+					lookat_exist=0
+					Operatable=1
+					slider_exist=1
+					stage_width=heya3x
+				}
+	}
+if gimmick_flag.i!=-1:goto *shit
+	
+	i=1
+	if gimmick_flag.i==0{
+		if bl2_hp.2<=0:gimmick_flag.i=1
+		if px>heya3x{gimmick_flag.i=-1;強制終了
+				letterbox_exist=0
+					lookat_exist=0
+					Operatable=1
+					slider_exist=1
+					stage_width=heya4x
+		}
+	}
+if gimmick_flag.i!=-1:goto *shit
+	
+	i=2
+	if gimmick_flag.i==0{
+		if en1_hp.0<=0:gimmick_flag.i=1
+		if px>heya4x{gimmick_flag.i=-1;強制終了
+					letterbox_exist=0
+					lookat_exist=0
+					Operatable=1
+					slider_exist=1
+					stage_width=heya5x
+		}
+	}
+if gimmick_flag.i!=-1:goto *shit
+
+	i=3
+	if gimmick_flag.i==0{
+		if px>heya4x+200-80:gimmick_flag.i=1
+		if px>heya5x{
+		}
+	}
+if gimmick_flag.i!=-1:goto *shit
+
+i=4
+	if gimmick_flag.i==0{
+		if en1_hp.5<=0:gimmick_flag.i=1
+		if px>heya5x{
+		}
+		;if px<heya4x+100{lookat_exist=0}else:lookat_exist=1
+	}
+if gimmick_flag.i!=-1:goto *shit
+	
+*shit
+	for i,0,gimmick_max,1
+		if gimmick_flag.i<=0:_continue;
+		switch i
+			/*case 0:gim_len=100
+				if gimmick_roll.i==0{;始まり
+					lookat_exist=1
+					lookat_x=heya1x-30
+					lookat_y=0
+					Operatable=0
+					letterbox_exist=1
+				}
+				gimmick_roll.i++
+				if OnGround>0:pstate=0:OnCombo=0
+				if gimmick_roll.i>gim_len{;終わり
+					letterbox_exist=0
+					gimmick_flag.i=-1
+					lookat_exist=0
+					Operatable=1
+				}
+			swbreak*/
+			case 0		:gim_di=20 :gim_len=100+gim_di
+				if gimmick_roll.i==gim_di{;始まり
+					lookat_exist=1
+					lookat_x=heya2x-screen_width/2-30
+					lookat_y=0
+					Operatable=0
+					letterbox_exist=1
+				}
+				;dialog "gimick_roll."+i+" = "+gimmick_roll.i,2
+				;if stat==7:stop
+				if gimmick_roll.i==gim_di:dsplay 70
+				if gimmick_roll.i>=gim_di{
+					bl.8.3+=-200.0/double(gim_len-gim_di-30);第二の門
+					if OnGround>0:pstate=0:OnCombo=0
+				}
+	
+				gimmick_roll.i++
+				
+				if gimmick_roll.i>gim_len{;終わり
+					letterbox_exist=0
+					gimmick_flag.i=-1
+					lookat_exist=0
+					Operatable=1
+					slider_exist=1
+					stage_width=heya3x
+				}
+			swbreak
+			case 1		:gim_di=20 :gim_len=100+gim_di
+				if gimmick_roll.i==gim_di{;始まり
+					lookat_exist=1
+					lookat_x=heya3x-screen_width/2-30
+					lookat_y=0
+					Operatable=0
+					letterbox_exist=1
+				}
+				;dialog "gimick_roll."+i+" = "+gimmick_roll.i,2
+				;if stat==7:stop
+	
+				if gimmick_roll.i==gim_di:dsplay 70
+				if gimmick_roll.i>=gim_di{
+					bl.10.3+=-200.0/double(gim_len-gim_di-30);第三の門
+					if OnGround>0:pstate=0:OnCombo=0
+				}
+	
+				gimmick_roll.i++
+				
+				if gimmick_roll.i>gim_len{;終わり
+					letterbox_exist=0
+					gimmick_flag.i=-1
+					lookat_exist=0
+					Operatable=1
+					slider_exist=1
+					stage_width=heya4x
+				}
+			swbreak
+			case 2		:gim_di=20 :gim_len=100+gim_di
+				if gimmick_roll.i==gim_di{;始まり
+					lookat_exist=1
+					lookat_x=heya4x-screen_width/2-30
+					lookat_y=0
+					Operatable=0
+					letterbox_exist=1
+				}
+				;dialog "gimick_roll."+i+" = "+gimmick_roll.i,2
+				;if stat==7:stop
+	
+				if gimmick_roll.i==gim_di:dsplay 70
+				if gimmick_roll.i>=gim_di{
+					bl.18.3+=-200.0/double(gim_len-gim_di-30);第4の門
+					if OnGround>0:pstate=0:OnCombo=0
+				}
+	
+				gimmick_roll.i++
+				
+				if gimmick_roll.i>gim_len{;終わり
+					gimmick_flag.i=-1
+					letterbox_exist=0
+					lookat_exist=0
+					Operatable=1
+					slider_exist=1
+					stage_width=heya5x
+				}
+			swbreak
+			case 3		:gim_di=0 :gim_len=200+gim_di
+				if gimmick_roll.i==gim_di{;始まり
+					lookat_exist=1
+					lookat_x=heya4x+150-80
+					lookat_y=0
+					Operatable=0
+					letterbox_exist=1
+					nanka=30
+				}
+				if gimmick_roll.i>=gim_di{
+					bl.18.3+=250.0/double(gim_len-gim_di-30);第4の門閉じる
+				}
+				
+				if gimmick_roll.i==gim_di:dsplay 70
+				if gimmick_roll.i>=gim_di+50{
+					if nanka<430{
+						nanka=nanka+5
+						en1.5.1+=0.0+nanka
+						en1.5.3+=0.0+nanka
+						if en1.5.3>=430{nanka=430
+							en1.5.1=430-300
+							en1.5.3=430
+							en1.3.3=en1.5.1-4
+							en1.3.3=en1.5.1
+							;dialog"tyakuti ^^"
+							dsplay 71
+							pvy=-5.0
+							pstate=-2
+							Di_b=0.0
+						}
+					}
+				}
+				gimmick_roll.i++
+	
+				if gimmick_roll.i>120{
+					en1.3.1-=30
+					en1.5.1-=(en1.5.3-225)/25
+					en1.5.3-=(en1.5.3-225)/25;
+					if Di_b<7.0:Di_b+=(7.2-Di_b)/18.0
+				}
+				
+				if gimmick_roll.i>gim_len{;終わり
+					gimmick_flag.i=-1
+					letterbox_exist=0
+					lookat_exist=0
+					Operatable=1
+					;en1_hp.6=4
+					;slider_exist=1
+					;stage_width=heya5x
+				}
+			swbreak
+			case 4		:gim_di=0 :gim_len=100+gim_di
+				if gimmick_roll.i==gim_di{;始まり
+					lookat_exist=1
+					lookat_x=heya4x+150-80
+					lookat_y=0
+					Operatable=0
+					letterbox_exist=1
+					hindo=40
+				}
+				if gimmick_roll.i<gim_len{
+					if gimmick_roll.i\hindo==0{
+						EFF_id=1
+						EFF_cx=rnd(260)+en1.5.0+20
+						EFF_cy=rnd(260)+430-300
+						EFF_di=0
+						gosub *play_effect
+					}
+					if gimmick_roll.i\20==0:dsplay 63
+					if gimmick_roll.i>=gim_di{
+						bl.18.3-=350.0/double(gim_len-gim_di-30);第4の門
+					}
+					if hindo>5:hindo--
+				}
+				
+				gimmick_roll.i++
+				
+				if gimmick_roll.i==gim_len{;終わり
+						dsplay 63
+						EFF_id=5
+						EFF_cx=en1.5.0+150
+						EFF_cy=430-300+150
+						EFF_di=0
+						gosub *play_effect
+						en1_ex.5=0
+					
+					Operatable=1
+					;slider_exist=1
+					;stage_width=heya5x
+				}
+				if gimmick_roll.i>gim_len+220{
+					gimmick_flag.i=-1
+					letterbox_exist=0
+					lookat_exist=0
+				}
+			swbreak
+		swend
+	next
+return
+*EOF

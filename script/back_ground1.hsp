@@ -1,0 +1,50 @@
+stage_width=5000
+screen_width=640
+screen_height=480
+
+buffer 10,stage_width+screen_width,screen_height+100
+gsel 10,0
+color 0,0,0:boxf
+
+color 150,150,150
+boxf 0,screen_height-150,stage_width+screen_width,screen_height+100
+
+
+
+;–³ˆÓ–¡
+;mandra="| "
+repeat 200
+;mandra=mandra+"a| "
+loop
+pos 0,screen_height-240
+print mandra
+;--------------------------------------------------------------------------------------------------
+buffer 11,stage_width+screen_width,screen_height-200
+gsel 11,0
+color 0,0,0:boxf
+
+color 190,190,190
+boxf 0,screen_height-200-150,stage_width+screen_width,screen_height-200+100
+;
+;pox=0	:wiiid=10	:hiiig=90	:boxf pox,130-hiiig,pox+wiiid,130
+
+
+
+
+;–³ˆÓ–¡
+pos 0,screen_height-250
+print mandra
+;--------------------------------------------------------------------------------------------------
+/*buffer 12,stage_width+screen_width,screen_height
+gsel 12,0
+color 0,0,0:boxf
+
+color 200,200,200
+boxf 0,screen_height-150,stage_width+screen_width,screen_height+60
+
+
+
+
+;–³ˆÓ–¡
+pos 0,screen_height-255
+print mandra*/

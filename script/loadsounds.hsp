@@ -1,0 +1,44 @@
+#include "hmm.as"
+dsinit
+
+mci "open ..\\music\\bmu_start3.mp3 alias start"
+mci "open ..\\music\\bmu_loop3.mp3 alias loop"
+
+dsloadfname "..\\sound\\se_old_pack00\\swing12.wav",11
+dsloadfname "..\\sound\\se_old_pack00\\hit_p07.wav",12
+dsloadfname "..\\sound\\se_old_pack00\\mecha22_s.wav",13
+dsloadfname "..\\sound\\se_old_pack00\\kachi42.wav",14
+dsloadfname "..\\sound\\se_old_pack00\\bom25.wav",15
+dsloadfname "..\\sound\\se_old_pack00\\push16.wav",16
+;dsloadfname "..\\sound\\se_old_pack00\\mecha22_s.wav",17
+dsloadfname "..\\sound\\se_old_pack00\\swing17.wav",18
+dsloadfname "..\\sound\\se_old_pack00\\swing36_b.wav",19
+dsloadfname "..\\sound\\se_old_pack00\\hit80.wav",20
+dsloadfname "..\\sound\\se_old_pack00\\swing37_b.wav",21
+dsloadfname "..\\sound\\se_old_pack00\\swing06_r.wav",22
+dsloadfname "..\\sound\\se_old_pack00\\swing35.wav",23
+dsloadfname "..\\sound\\se_old_pack00\\gun25.wav",24
+dsloadfname "..\\sound\\se_old_pack00\\shoot10.wav",25
+dsloadfname "..\\sound\\se_old_pack00\\swing24_c.wav",26
+dsloadfname "..\\sound\\se_old_pack00\\gun24.wav",27
+dsloadfname "..\\sound\\se_old_pack00\\swing34.wav",28
+
+dsloadfname "..\\sound\\se_old_pack00\\bosu32.wav",50
+dsloadfname "..\\sound\\se_old_pack00\\bell01.wav",60
+dsloadfname "..\\sound\\se_old_pack00\\don01.wav",61
+dsloadfname "..\\sound\\se_old_pack00\\mecha19.wav",62
+dsloadfname "..\\sound\\se_old_pack00\\bom17_a.wav",63
+dsloadfname "..\\sound\\se_old_pack00\\hit_p05.wav",64
+dsloadfname "..\\sound\\se_old_pack00\\pi78.wav",65
+dsloadfname "..\\sound\\se_old_pack00\\don15.wav",66
+dsloadfname "..\\sound\\se_old_pack00\\bom17_a.wav",67
+dsloadfname "..\\sound\\se_old_pack00\\bosu13.wav",68
+
+dsloadfname "..\\sound\\se_old_pack00\\mecha21.wav",70
+dsloadfname "..\\sound\\se_old_pack00\\mecha24_b.wav",71
+
+dsloadfname "..\\sound\\tm2_switch000_1.wav",100
+dsloadfname "..\\sound\\tm2_switch001_1.wav",110
+dsloadfname "..\\sound\\tm2_put003_1.wav",120
+dsloadfname "..\\sound\\tm2_hit004_1.wav",130
+mmload "..\\sound\\se_old_pack00\\bom17_a.wav",63

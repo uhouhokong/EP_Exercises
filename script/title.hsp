@@ -1,0 +1,136 @@
+dim coma,20
+i=0
+ coma.i=8	:i++
+ coma.i=10	:i++
+ coma.i=14	:i++
+ coma.i=20	:i++
+ coma.i=10	:i++
+ coma.i=18	:i++;’…’n
+ coma.i=6	:i++
+ coma.i=12	:i++
+ coma.i=16	:i++
+ coma.i=16	:i++
+ coma.i=10	:i++
+ coma.i=8	:i++
+ coma.i=8	:i++
+ coma.i=8	:i++
+ coma.i=24	:i++;‚È‚®‚è‚¼‚ß
+ coma.i=28	:i++
+ coma.i=8	:i++
+ coma.i=6	:i++
+ coma.i=6	:i++
+ coma.i=14	:i++
+
+repeat 24
+buffer 500+cnt
+picload "..\\imoge\\movB\\"+cnt+".png"
+loop
+
+mci "open ..\\music\\Screw_Head.mp3 alias title"
+mmload "..\\sound\\no_03\\tm2_bom001.wav",200
+mmload "..\\sound\\se_old_pack00\\step07.wav",201
+mmload "..\\sound\\se_old_pack00\\swing12.wav",202
+mmload "..\\sound\\se_old_pack00\\swing05.wav",203
+mmload "..\\sound\\se_old_pack00\\metal43.wav",204
+
+*koushi
+
+screen 0
+gmode 0,640,480:pos 0,0
+repeat
+gcopy 500+int(1.5+1.0*sin(0.022*cnt)),0,0
+await 1
+stick Mongolia,16
+if Mongolia&16:break
+loop
+
+roll=0
+India=0
+mmplay 202
+
+repeat
+
+stick Mongolia,8
+if roll<18:if Mongolia&8:Mon_flag=1:roll++:India=0:if roll>17:roll==18:India=0
+
+gcopy 500+3+roll,0,0
+
+if India==coma.roll:India=0:roll+=1
+if roll==4{if India==coma.roll*3/4{mmplay 201}}
+else:if roll==10{if India==0{mmplay 203}}
+else:if roll==13{if India==0{mmplay 203}}
+else:if roll==18{
+	if India==0:mmplay 200:mci "play title from 0"
+	if India<4:color 230,230,230:boxf
+}
+else:if roll==20:break
+India++
+await 5
+loop
+
+font "‚l‚r ƒSƒVƒbƒN",24,1
+await 200
+roll=0
+a=0.056
+Zenka=3.8
+toka=0
+diff_roll=0
+diff_max=3
+
+repeat
+redraw 0
+color 67,67,67:boxf
+pos 0,0
+gmode 3,640,480,256.0-1.8*toka
+gcopy 500+23,toka,0
+
+toka+=Zenka
+if Zenka-a>0:Zenka-=a
+
+if (50<cnt&&cnt<56) || (64<cnt&&cnt<70) || (90<cnt&&cnt>100) || (110<cnt){
+	pos 200,340
+	if cnt>110:pos 200,340.0+3.0*sin(0.02*cnt)
+	color 255,255,255
+	print "press SPACE to start"
+}
+stick Mongolia,144
+if Mongolia&16:motikosi=cnt:break
+if Mongolia&128:mci "stop title":goto *koushi
+
+if Mongolia&8:diff_roll=(diff_roll+1)\diff_max:dsplay 60
+
+if (cnt\2)==0{
+color 255,255,255
+pos 600,10
+print ""+diff_roll
+}
+
+redraw 1
+await 1
+loop
+
+mci "stop title"
+difficult=diff_roll
+mmplay 204
+loopnum=90.0
+
+repeat int(loopnum)
+redraw 0
+color 67.0+double(255-67)*(0.0+cnt)/loopnum,67.0+double(255-67)*(0.0+cnt)/loopnum,67.0+double(255-67)*(0.0+cnt)/loopnum:boxf
+pos 0,0
+color 67,67,67
+gmode 4,640,480,256.0-1.8*toka-(256.0-1.8*toka)*(0.0+cnt)/loopnum
+gcopy 500+23,toka,0
+toka+=Zenka
+if Zenka-a>0:Zenka-=a
+
+if (motikosi+cnt)\4<2{
+	pos 200,340.0+3.0*sin(0.02*(motikosi+cnt))
+	color 255,255,255
+	print "press SPACE to start"}
+redraw 1
+await 1
+loop
+
+
+sysfont 0

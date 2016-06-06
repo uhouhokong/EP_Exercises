@@ -1,0 +1,40 @@
+buffer 1
+picload "C:\\Users\\igarashi_lab\\Documents\\Processing\\taiken\\sketch_160129a\\taiken.jpg"
+screen 0
+x=0.0
+repeat
+redraw 0
+color 255,255,255:boxf
+color 0,0,0
+x=x+0.025
+pos 320,210
+gmode 2,240,240
+;gcopy 1,20,20,260,260
+;grotate 1,30,30,-x*2
+;gsquare
+;gzoom
+
+for i,0,64,1
+	pos 280.0+sin((6.28/64*i+x/10)*3.0)*280,210+cos((6.28/64*i+x/10)*5.0)*180
+	print "幸せな家庭"
+next
+for i,0,128,1
+	pos 280.0+sin(6.28/128*i+x)*280,210+cos(6.28/128*i+x*2)*180
+	print "いぬ"
+next
+pos 312.0+sin(x)*140,210+cos(x)*140
+print "いぬ"
+
+x=x+0.02
+/*
+for i,0,64,1
+	pos 312.0+sin(6.28/64*i+x)*140*cos(6.28/32*i/2+x),210+cos(6.28/64*i+x)*140*cos(6.28/32*i)
+	print "近隣住民"
+next*/
+
+pos 280,430
+print "コミュニティー"
+
+redraw 1
+wait 1
+loop
